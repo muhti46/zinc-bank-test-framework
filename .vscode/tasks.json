@@ -1,0 +1,47 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "test",
+      "type": "shell",
+      "command": "npm test",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "test:html (with report)",
+      "type": "shell",
+      "command": "npm run test:html",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "typecheck",
+      "type": "shell",
+      "command": "npm run typecheck",
+      "group": "build",
+      "problemMatcher": ["$tsc"]
+    },
+    {
+      "label": "stability: 10x flakiness proof",
+      "type": "shell",
+      "command": "1..10 | ForEach-Object { Write-Host \"Run $_/10\"; npm test; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } }",
+      "group": "test",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "clean reports",
+      "type": "shell",
+      "command": "npm run report:clean",
+      "group": "build",
+      "problemMatcher": []
+    }
+  ]
+}

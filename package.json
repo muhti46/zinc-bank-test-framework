@@ -1,0 +1,27 @@
+{
+  "name": "playwright-cucumber-framework",
+  "version": "1.0.0",
+  "description": "A beginner-friendly BDD test automation framework built with Playwright, Cucumber (Gherkin) and TypeScript using the Page Object Model.",
+  "private": true,
+  "scripts": {
+    "test": "cucumber-js",
+    "test:html": "cucumber-js && npm run report:generate",
+    "report:generate": "ts-node src/utils/reportGenerator.ts",
+    "report:open": "start reports/cucumber-report.html",
+    "report:clean": "node -e \"const fs = require('fs'); ['reports', 'test-results'].forEach((dir) => fs.rmSync(dir, { recursive: true, force: true })); console.log('Cleaned reports/ and test-results/');\"",
+    "install:browsers": "playwright install chromium",
+    "typecheck": "tsc --noEmit",
+    "mcp:playwright": "npx @playwright/mcp"
+  },
+  "devDependencies": {
+    "@cucumber/cucumber": "^13.2.1",
+    "@playwright/mcp": "^0.0.80",
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^24.0.0",
+    "cucumber-html-reporter": "^7.2.0",
+    "dotenv": "^17.4.2",
+    "playwright": "^1.63.0",
+    "ts-node": "^10.9.2",
+    "typescript": "~5.9.3"
+  }
+}

@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Environment variables - never commit secrets
+.env
+.env.local
+.env.*.local
+
+# TypeScript build output
+dist/
+
+# Cucumber reports and screenshots (keep the folders, ignore their content)
+reports/*
+!reports/.gitkeep
+test-results/*
+!test-results/screenshots/
+test-results/screenshots/*
+!test-results/screenshots/.gitkeep
+
+# Logs and OS files
+*.log
+.DS_Store
+Thumbs.db

@@ -1,0 +1,25 @@
+{
+  // -------------------------------------------------------------------
+  // Go to Definition (F12 / right-click) from .feature files
+  // -------------------------------------------------------------------
+  // Two Cucumber extensions can power this navigation. Both are configured
+  // below so it works no matter which one is enabled. If you see duplicate
+  // suggestions/hovers, disable the legacy alexkrechik.cucumberautocomplete
+  // extension and keep cucumberopen.cucumber-official.
+
+  // Official Cucumber extension (cucumberopen.cucumber-official).
+  // Points the Cucumber Language Server at this project's folders.
+  "cucumber.features": [
+    "features/**/*.feature"
+  ],
+  "cucumber.glue": [
+    "src/**/*.ts"
+  ],
+
+  // Legacy alexkrechik.cucumberautocomplete extension (alternative).
+  "cucumberautocomplete.steps": [
+    "src/step-definitions/**/*.ts"
+  ],
+  "cucumberautocomplete.syncfeatures": "features/**/*.feature",
+  "cucumberautocomplete.strictGherkinCompletion": true
+}
