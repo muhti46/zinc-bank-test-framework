@@ -219,20 +219,20 @@ Demo values currently in the local `.env` (ZincBank credentials):
 
 ---
 
-## 7.5. Playwright MCP (AI asistana tarayıcı kontrolü)
+## 7.5. Playwright MCP (browser control for AI assistants)
 
-Proje, AI asistanların (Cline, VS Code Copilot, Claude Desktop vb.)
-doğrudan tarayıcıyı kontrol etmesini sağlayan **Playwright MCP** ile birlikte
-gelir. Bu sayede AI, sayfaları gezebilir, elementlere tıklayabilir, ekran
-görüntüsü alabilir ve testlerinizi canlı olarak gözlemleyebilir.
+The project ships with **Playwright MCP**, which lets AI assistants (Cline,
+VS Code Copilot, Claude Desktop, etc.) control the browser directly. The AI
+can navigate pages, click elements, take screenshots, and observe your tests
+live.
 
-**Kurulum zaten yapıldı:**
+**Installation is already done:**
 
 ```bash
 npm install --save-dev @playwright/mcp
 ```
 
-**MCP yapılandırması** (`workspace kökündeki .mcp.json`):
+**MCP configuration** (`.mcp.json` in the workspace root):
 
 ```json
 {
@@ -248,23 +248,23 @@ npm install --save-dev @playwright/mcp
 }
 ```
 
-**Kullanım:**
+**Usage:**
 
-1. VS Code'da **Cline** eklentisini kullanıyorsanız, `.mcp.json` dosyası
-   otomatik algılanır (yeni dosya eklendikten sonra **"Use Tools"** menüsünde
-   `playwright` sunucusu görünür; gerekirse VS Code'u yeniden başlatın).
-2. MCP sunucusunu komut satırından test etmek için:
+1. If you use the **Cline** extension in VS Code, the `.mcp.json` file is
+   detected automatically (after adding a new file, the `playwright` server
+   appears in the **"Use Tools"** menu; restart VS Code if needed).
+2. To test the MCP server from the command line:
 
    ```bash
    npm run mcp:playwright
    ```
 
-   → MCP, `stdio` üzerinden dinlemeye başlar (bu adım yalnızca manuel test
-   içindir; AI asistanlar sunucuyu otomatik başlatır).
+   → MCP starts listening on `stdio` (this step is only for manual testing;
+   AI assistants start the server automatically).
 
-**Not:** Bu framework'ün kendi testleri (`npm test`) Playwright'ı doğrudan
-kullanır ve MCP'ye ihtiyaç duymaz. MCP yalnızca AI asistanların canlı
-tarayıcıya erişmesi gereken durumlar içindir.
+**Note:** The framework's own tests (`npm test`) use Playwright directly and
+do not need MCP. MCP is only for cases where AI assistants need live access
+to the browser.
 
 ---
 
