@@ -17,8 +17,9 @@ controller at **http://localhost:8080** and how the pipeline works.
 The job config mirrors the proven `zincbank-e2e` job already on the controller.
 
 > **Suite → command mapping** (see the `Run Tests & Build Reports` stage):
-> `full`/`regression` → `npm test` (all scenarios); `smoke` → `npm run
-> test:smoke` (only the `@smoke`-tagged scenarios).
+> `full` → `npm test` (all scenarios); `smoke` → `npm run test:smoke` (the
+> `@smoke`-tagged scenarios); `regression` → `npm run test:regression` (the
+> `@regression`-tagged scenarios).
 
 ## Jenkins prerequisites
 
@@ -66,10 +67,12 @@ The job config mirrors the proven `zincbank-e2e` job already on the controller.
 `Install Dependencies` (`npm ci`) →
 `Install Playwright Browsers` (`npx playwright install chromium`) →
 `Typecheck` → `Run Tests & Build Reports`. That stage picks the command from the
-build cause / parameter: the **scheduled 08:00 build always runs `smoke`**
-(`npm run test:smoke`, the `@smoke`-tagged scenarios), while manual and
-SCM-poll builds run the chosen `TEST_SUITE` (`full`/`regression` = `npm test`,
-`smoke` = `npm run test:smoke`). The driver `src/utils/runTestWithReports.ts`
+build cause / parameter: the **scheduled weekday builds always run their fixed
+suite** — 08:00 → `smoke` (`npm run test:smoke`, the `@smoke`-tagged scenarios)
+and 17:00 → `regression` (`npm run test:regression`, the `@regression`-tagged
+scenarios) — while manual and SCM-poll builds run the chosen `TEST_SUITE`
+(`full` = `npm test`, `smoke` = `npm run test:smoke`, `regression` =
+`npm run test:regression`). The driver `src/utils/runTestWithReports.ts`
 runs the suite and also builds both reports on the agent; the explicit
 `npm run report:generate` + `npm run report:allure:generate` steps after it are
 idempotent. The exit code is preserved so a failing suite still ships its
@@ -99,16 +102,19 @@ workspace `allure-report/` produced by `npm run report:allure:generate`
 - **Manual**: open the job → *Build with Parameters* (pick `full`/`smoke`/`regression`).
 - **Weekday smoke**: `cron('0 8 * * 1-5')` — **Mon–Fri at 08:00** — runs the
   `@smoke` suite and e-mails the report (see next section).
+- **Weekday regression**: `cron('0 17 * * 1-5')` — **Mon–Fri at 17:00** — runs
+  the `@regression` suite and e-mails the report (see next section).
 - **On push**: `pollSCM('H/5 * * * *')` — the controller listens on `localhost`,
   so GitHub webhooks cannot reach it; polling is used instead. Push builds run
   the full suite.
 
-## Daily smoke report e-mail (Mon–Fri 08:00)
+## Daily report e-mail (Mon–Fri 08:00 smoke + 17:00 regression)
 
-The scheduled 08:00 build always runs the **smoke suite** and, at the end of
-`post { always }`, sends **one e-mail per scheduled build** (manual / push
-builds do not send e-mail, to avoid inbox spam). The e-mail goes to the
-Jenkins **default recipients** — no address is hardcoded in the pipeline.
+The scheduled weekday builds — 08:00 **smoke** and 17:00 **regression** — each
+send, at the end of `post { always }`, **one e-mail per scheduled build**
+(manual / push builds do not send e-mail, to avoid inbox spam). The e-mail goes
+to the Jenkins **default recipients** — no address is hardcoded in the
+pipeline.
 
 One-time setup:
 
@@ -119,24 +125,27 @@ One-time setup:
    **E-mail Notification** section with the same SMTP server (fallback path).
 3. Click **Test configuration** / send a test mail until it succeeds.
 
-What arrives at 08:00:
+What arrives:
 
-- Subject: `[Jenkins] Smoke report <job> #<build> - SUCCESS|FAILURE`.
+- Subject: `[Jenkins] Smoke report <job> #<build> - SUCCESS|FAILURE` (08:00)
+  or `[Jenkins] Regression report <job> #<build> - SUCCESS|FAILURE` (17:00).
 - HTML body with the build URL, the result, and links to the archived Cucumber
   HTML and the native Allure report.
 - Attachments: the self-contained `reports/cucumber-report.html` + failure
   screenshots (`test-results/screenshots/*.png`) + the console log.
-- Sent on success **and** failure (a red smoke run still reports itself).
+- Sent on success **and** failure (a red run still reports itself).
 
 To change who receives it, edit **Default Recipients** (global) — no pipeline
-change needed. To switch the daily run to a different time/day, change
-`cron('0 8 * * 1-5')` in the `Jenkinsfile` (Jenkins cron: minutes hours
-day-of-month month day-of-week; `1-5` = Mon–Fri).
+change needed. To switch the daily runs to different times/days, change the
+`cron('0 8 * * 1-5')` / `cron('0 17 * * 1-5')` lines in the `Jenkinsfile`
+(Jenkins cron: minutes hours day-of-month month day-of-week; `1-5` = Mon–Fri).
 
 > The smoke suite is defined by the `@smoke` Cucumber tag — currently the three
 > critical-path scenarios (login with valid credentials, dashboard redirect,
-> dashboard navigation). Add the tag to any other scenario you want in the
-> daily smoke run (`npm run test:smoke` on your machine reproduces it).
+> dashboard navigation). The regression suite is defined by the `@regression`
+> tag — currently every other (non-smoke) scenario. Add/remove either tag to
+> change what the daily runs cover; `npm run test:smoke` / `npm run
+> test:regression` on your machine reproduce them.
 
 ## Reports auto-open on the desktop
 

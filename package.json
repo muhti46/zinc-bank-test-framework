@@ -10,6 +10,7 @@
     "test:us00": "ts-node src/utils/runTestWithReports.ts --tags @US00",
     "test:us01": "ts-node src/utils/runTestWithReports.ts --tags @US01",
     "test:smoke": "ts-node src/utils/runTestWithReports.ts --tags @smoke",
+    "test:regression": "ts-node src/utils/runTestWithReports.ts --tags @regression",
     "report:generate": "ts-node src/utils/reportGenerator.ts",
     "report:allure:generate": "allure generate allure-results --clean -o allure-report",
     "report:open": "start reports/cucumber-report.html",

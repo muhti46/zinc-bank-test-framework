@@ -17,6 +17,9 @@
 //   - Weekday smoke: Mon-Fri at 08:00 via cron - runs ONLY the @smoke-tagged
 //     scenarios (npm run test:smoke) and e-mails the report to the Jenkins
 //     default recipients (see the post{always} block + jenkins/README.md)
+//   - Weekday regression: Mon-Fri at 17:00 via cron - runs the @regression-
+//     tagged scenarios (npm run test:regression) and e-mails the report the
+//     same way (see the post{always} block + jenkins/README.md)
 //   - SCM polling every 5 min picks up pushed changes (localhost controller
 //     cannot receive GitHub webhooks) and runs the full suite
 
@@ -33,6 +36,8 @@ pipeline {
     triggers {
         // Weekday smoke run: Mon-Fri (1-5) at 08:00.
         cron('0 8 * * 1-5')
+        // Weekday regression run: Mon-Fri (1-5) at 17:00.
+        cron('0 17 * * 1-5')
         pollSCM('H/5 * * * *')
     }
 
@@ -40,7 +45,7 @@ pipeline {
         choice(
             name: 'TEST_SUITE',
             choices: ['full', 'smoke', 'regression'],
-            description: 'Which suite to run? full/regression = all scenarios; smoke = @smoke-tagged scenarios only. The scheduled 08:00 weekday build ALWAYS runs smoke regardless of this value.'
+            description: 'Which suite to run? full = all scenarios; smoke = @smoke-tagged; regression = @regression-tagged. The scheduled weekday builds ALWAYS run their fixed suite regardless of this value (08:00 = smoke, 17:00 = regression).'
         )
     }
 
@@ -102,12 +107,18 @@ pipeline {
             steps {
                 nodejs(nodeJSInstallationName: 'NodeJS') {
                     script {
-                        // The scheduled weekday 08:00 build is ALWAYS a smoke
-                        // run. Manual "Build with Parameters" and SCM-poll builds
-                        // use the TEST_SUITE parameter (default full).
-                        def isScheduledSmoke = !(currentBuild.getBuildCauses('hudson.triggers.TimerTrigger') ?: []).isEmpty()
-                        def suite = isScheduledSmoke ? 'smoke' : (params.TEST_SUITE ?: 'full')
-                        def testCmd = suite == 'smoke' ? 'npm run test:smoke' : 'npm test'
+                        // Scheduled weekday builds ALWAYS run their fixed suite:
+                        // the 08:00 cron fires smoke, the 17:00 cron fires
+                        // regression (both Mon-Fri). Manual "Build with
+                        // Parameters" and SCM-poll builds use TEST_SUITE.
+                        def isScheduled = !(currentBuild.getBuildCauses('hudson.triggers.TimerTrigger') ?: []).isEmpty()
+                        def suite
+                        if (isScheduled) {
+                            suite = new Date().getHours() < 12 ? 'smoke' : 'regression'
+                        } else {
+                            suite = params.TEST_SUITE ?: 'full'
+                        }
+                        def testCmd = suite == 'smoke' ? 'npm run test:smoke' : (suite == 'regression' ? 'npm run test:regression' : 'npm test')
                         echo "Running suite: ${suite} -> ${testCmd}"
                         // Run the tests, then ALWAYS build BOTH reports (Cucumber
                         // HTML + Allure HTML), but keep the Cucumber exit code so
@@ -151,21 +162,25 @@ pipeline {
             archiveArtifacts artifacts: 'allure-report/**', allowEmptyArchive: true
             archiveArtifacts artifacts: 'test-results/**', allowEmptyArchive: true
 
-            // Daily smoke e-mail: sent only for the scheduled weekday 08:00
-            // build (cron trigger), so manual/push builds don't spam the inbox.
+            // Daily scheduled e-mail: sent only for the weekday 08:00 (smoke)
+            // and 17:00 (regression) cron triggers, so manual/push builds
+            // don't spam the inbox.
             // Primary: Email Extension plugin (emailext, HTML body + report
             // attachment). Fallback: plain mail step. Both use the Jenkins
             // global "default recipients", so no address is committed here -
             // configure SMTP + recipients in Manage Jenkins -> Configure System
-            // (see jenkins/README.md, "Daily smoke report e-mail").
+            // (see jenkins/README.md, "Daily report e-mail").
             script {
-                def isScheduledSmoke = !(currentBuild.getBuildCauses('hudson.triggers.TimerTrigger') ?: []).isEmpty()
-                if (isScheduledSmoke) {
-                    def subject = "[Jenkins] Smoke report ${env.JOB_NAME} #${env.BUILD_NUMBER} - ${currentBuild.currentResult}"
+                def isScheduled = !(currentBuild.getBuildCauses('hudson.triggers.TimerTrigger') ?: []).isEmpty()
+                if (isScheduled) {
+                    def suite = new Date().getHours() < 12 ? 'smoke' : 'regression'
+                    def suiteTitle = suite.capitalize()
+                    def suiteLabel = suite == 'smoke' ? 'smoke (@smoke-tagged scenarios)' : 'regression (@regression-tagged scenarios)'
+                    def subject = "[Jenkins] ${suiteTitle} report ${env.JOB_NAME} #${env.BUILD_NUMBER} - ${currentBuild.currentResult}"
                     def body = """
                         <html><body>
-                        <h2>Smoke test report - ${env.JOB_NAME} #${env.BUILD_NUMBER}</h2>
-                        <p><b>Suite:</b> smoke (@smoke-tagged scenarios)</p>
+                        <h2>${suiteTitle} test report - ${env.JOB_NAME} #${env.BUILD_NUMBER}</h2>
+                        <p><b>Suite:</b> ${suiteLabel}</p>
                         <p><b>Result:</b> <span style="color:${currentBuild.currentResult == 'SUCCESS' ? 'green' : 'red'};font-weight:bold">${currentBuild.currentResult}</span></p>
                         <p><b>Build:</b> <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
                         <h3>Reports</h3>
@@ -192,7 +207,7 @@ pipeline {
                             mail(
                                 to: '$DEFAULT_RECIPIENTS',
                                 subject: subject,
-                                body: "Smoke report for ${env.JOB_NAME} #${env.BUILD_NUMBER}: ${currentBuild.currentResult}. See ${env.BUILD_URL}"
+                                body: "${suiteTitle} report for ${env.JOB_NAME} #${env.BUILD_NUMBER}: ${currentBuild.currentResult}. See ${env.BUILD_URL}"
                             )
                         } catch (Exception e2) {
                             echo "E-mail could not be sent (${e2}) - configure SMTP + default recipients in Manage Jenkins -> Configure System."

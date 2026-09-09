@@ -9,7 +9,7 @@ Feature: Customer Login
   Background:
     Given I am on the login page
 
-  @US00-AC1
+  @US00-AC1 @regression
   Scenario: Login form displays all required elements
     Then I should see the ZincBank branding
     And I should see the email field
@@ -22,25 +22,25 @@ Feature: Customer Login
     When I log in with valid credentials
     Then I should be logged in successfully
 
-  @US00-AC3
+  @US00-AC3 @regression
   Scenario: System prevents login with invalid credentials
     When I log in with invalid credentials
     Then I should see an error message
     And I should remain on the login page
 
-  @US00-AC4
+  @US00-AC4 @regression
   Scenario: System shows a validation message when required fields are empty
     When I click the sign in button with empty fields
     Then I should see the message "Enter your email and password."
     And I should remain on the login page
 
-  @US00-AC5
+  @US00-AC5 @regression
   Scenario: System validates the email format
     When I enter an invalid email format
     Then I should see the message "Enter your email and password."
     And I should remain on the login page
 
-  @US00-AC6
+  @US00-AC6 @regression
   Scenario: Password field masks the entered characters
     When I enter the password "Sup3rSecret!"
     Then the password field should mask the characters

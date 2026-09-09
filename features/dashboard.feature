@@ -9,7 +9,7 @@ Feature: Customer Dashboard
   Background:
     Given I am on the login page
 
-  @US01-AC1
+  @US01-AC1 @regression
   Scenario: User is authenticated after logging in with valid credentials
     When I log in with valid credentials
     Then I should be logged in successfully
@@ -20,7 +20,7 @@ Feature: Customer Dashboard
     Then I should be redirected to the dashboard
     And I should see the dashboard page
 
-  @US01-AC3
+  @US01-AC3 @regression
   Scenario: Authenticated user remains authenticated when accessing the dashboard directly
     When I log in with valid credentials
     Then I should be redirected to the dashboard
@@ -28,7 +28,7 @@ Feature: Customer Dashboard
     Then I should remain on the dashboard
     And I should be logged in successfully
 
-  @US01-AC4
+  @US01-AC4 @regression
   Scenario: Unauthenticated user is redirected to the login page when accessing the dashboard
     When I visit the dashboard directly
     Then I should be redirected to the login page
@@ -40,14 +40,14 @@ Feature: Customer Dashboard
     Then the sidebar should display the navigation elements "Dashboard, Accounts, Move money, Transactions, Cards, Profile, Sign out"
     And each navigation element should display an icon
 
-  @US01-AC6
+  @US01-AC6 @regression
   Scenario: User signs out and is redirected to the login page
     When I log in with valid credentials
     And I sign out
     Then I should be redirected to the login page
     And I should be logged out
 
-  @US01-AC7
+  @US01-AC7 @regression
   Scenario: Signed out user cannot access the dashboard without authenticating again
     When I log in with valid credentials
     And I sign out
