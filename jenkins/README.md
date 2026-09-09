@@ -68,6 +68,13 @@ Artifacts archived on **every** build (even failures):
 - `allure-report/index.html` — Allure HTML report (raw data in `allure-results/`)
 - `test-results/screenshots/*.png` — failure screenshots
 
+In addition, the **Allure Jenkins Plugin** publishes a native **"Allure
+Report"** link on the build and job pages (`/job/zincbank-test-framework`
+→ *Allure Report* → last build), with a trend graph across builds. It uses the
+`allure` tool (Recommended Allure 3 managed runtime) and does not touch the
+workspace `allure-report/` produced by `npm run report:allure:generate`
+(which is still archived as an ordinary artifact).
+
 ## Triggers
 
 - **Manual**: open the job → *Build with Parameters*.

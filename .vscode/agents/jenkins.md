@@ -158,7 +158,9 @@ Credentials and job XML follow the existing `zincbank-e2e` job pattern (see
    `reports/cucumber-report.html`, `allure-report/index.html`,
    `test-results/screenshots/*.png`.
 4. Job XML is valid: pipeline-from-SCM, `scriptPath=Jenkinsfile`, branch `*/main`.
-5. A real Jenkins build is **green** and the reports are archived on the build.
+5. A real Jenkins build is **green**, the reports are archived on the build,
+   and the build/job pages show the native **"Allure Report"** link
+   (`/job/<job>/<build>/allure/`).
 
 ---
 

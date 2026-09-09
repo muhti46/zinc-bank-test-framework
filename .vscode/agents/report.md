@@ -139,8 +139,10 @@ A red build still ships debuggable evidence.
    `allure-report/index.html` all exist; `allure-results/` is non-empty.
 4. Open `allure-report/index.html` → scenarios listed; any failed scenario
    shows the attached screenshot.
-5. On Jenkins: build is green and the archived artifact list contains the
-   Allure `index.html` and the Cucumber HTML report.
+5. On Jenkins: build is green, the archived artifact list contains the
+   Allure `index.html` and the Cucumber HTML report, and the build page shows
+   the native **"Allure Report"** link (Allure Jenkins Plugin, managed Allure 3
+   runtime).
 
 ---
 
