@@ -114,15 +114,16 @@ generate reports even when tests fail and archive them in
   plugin:
   ```groovy
   step([$class: 'AllureReportPublisher',
-        allureVersion: '3',
+        commandline: 'allure',
         reportBuildPolicy: 'ALWAYS',
         results: [[path: 'allure-results']]])
   ```
   wrapped in a try/catch so a publishing problem never flips the build result.
-  `allureVersion: '3'` selects the **Allure 3** path; do not set
-  `commandline` (an Allure 2-only option in 3.x). The `allure3` tool is an
-  **Allure 3** "recommended" installation: the plugin bundles the Allure
-  runtime and installs a private Node.js runtime on first use.
+  `commandline: 'allure'` selects the **Allure commandline** tool installed
+  with the **Recommended Allure 3** installer (the plugin bundles the Allure
+  runtime and caches a private Node.js runtime). Do not use `allureVersion:
+  '3'` / the legacy "Allure 3" tool — that variant requires `allure` in the
+  agent's PATH.
 
 - `reports/cucumber-report.json` and `reports/cucumber-report.html`
 - `allure-report/` (whole tree, entry `allure-report/index.html`)
