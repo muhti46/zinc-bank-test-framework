@@ -41,8 +41,8 @@ pipeline {
     }
 
     environment {
-        // Non-secret values: public ZincBank demo application.
-        BASE_URL = 'https://zincbank.cydeo.io'
+        // Non-secret values: public ZincBank demo application (login page URL).
+        BASE_URL = 'https://zincbank.cydeo.io/login'
         HEADLESS = 'true'
 
         // Secret values live in the Jenkins credential store - never in git.

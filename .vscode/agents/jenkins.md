@@ -78,7 +78,7 @@ The framework reads these env vars at runtime: `BASE_URL`, `HEADLESS`,
 `APP_USERNAME`, `APP_PASSWORD`, `APP_INVALID_USERNAME`, `APP_INVALID_PASSWORD`,
 `EXPECTED_ERROR_TEXT` (`.env` is git-ignored and never committed).
 
-- Non-secret values (`BASE_URL=https://zincbank.cydeo.io`, `HEADLESS=true`) may
+- Non-secret values (`BASE_URL=https://zincbank.cydeo.io/login`, `HEADLESS=true`) may
   stay in the `Jenkinsfile`.
 - Secret values must live in the **Jenkins credential store** and be referenced as
   `credentials('<id>')` in the pipeline `environment` block. Framework secret IDs:
