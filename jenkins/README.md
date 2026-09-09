@@ -63,6 +63,11 @@ on the agent; the explicit `npm run report:generate` +
 `npm run report:allure:generate` steps after it are idempotent. The exit code
 is preserved so a failing suite still ships its reports).
 
+After the stages finish, `post { always }` archives everything and — on this
+local controller — triggers the interactive scheduled task
+`zincbank-open-reports`, which opens the fresh Cucumber + Allure reports on the
+logged-in desktop (see "Reports auto-open on the desktop" below).
+
 Artifacts archived on **every** build (even failures):
 
 - `reports/cucumber-report.html` — human-readable HTML report
@@ -83,6 +88,51 @@ workspace `allure-report/` produced by `npm run report:allure:generate`
 - **Nightly**: `cron('0 8 * * 1-6')` (Mo–Sa, 08:00).
 - **On push**: `pollSCM('H/5 * * * *')` — the controller listens on `localhost`,
   so GitHub webhooks cannot reach it; polling is used instead.
+
+## Reports auto-open on the desktop
+
+The controller runs as a **Windows service (`LocalSystem`, session 0)**, so a
+`start` from the pipeline would open a browser nobody can see. Instead, at the
+end of `post { always }` the pipeline runs a best-effort step that:
+
+1. writes `open-reports-request.json` into the job workspace (absolute Cucumber
+   HTML path + this build's Allure-plugin URL),
+2. runs `schtasks /run /tn "zincbank-open-reports"`.
+
+That scheduled task is registered in **your interactive session**, so Task
+Scheduler launches it on your desktop. It executes
+`jenkins/open-reports-on-desktop.ps1`, which opens the Cucumber HTML file and
+the Allure report URL of that build. Allure is opened through the Jenkins
+plugin URL (served over HTTP) rather than the local file, because an Allure
+report opened as a `file://` page renders blank (browsers block its `fetch()`
+data calls).
+
+This happens after **every** completed build — manual *Build with Parameters*,
+nightly cron and SCM-poll builds alike. It is best-effort only: if the task is
+missing or nobody is logged on, the build stays green and the `schtasks` error
+is printed in the console.
+
+### One-time setup (run once from your normal, logged-in user)
+
+```powershell
+$helper = 'C:\Users\muhte\.jenkins\workspace\zincbank-test-framework\jenkins\open-reports-on-desktop.ps1'
+$action    = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$helper`""
+$principal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType Interactive -RunLevel Limited
+$settings  = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit ([TimeSpan]::Zero) -MultipleInstances IgnoreNew
+Register-ScheduledTask -TaskName 'zincbank-open-reports' -Action $action -Principal $principal -Settings $settings -Description 'Opens Cucumber + Allure reports on the desktop after a Jenkins build.' -Force
+```
+
+Verify: open the job → *Build with Parameters* → when the build finishes, both
+reports pop up on your desktop. Every run appends a line to
+`open-reports-desktop.log` in the job workspace.
+
+Notes:
+
+- Disable it any time with
+  `Unregister-ScheduledTask -TaskName 'zincbank-open-reports' -Confirm:$false`
+  (builds stay green).
+- If the job workspace path ever changes, re-run the setup with the new
+  `$helper` path.
 
 ## Verification
 

@@ -20,6 +20,7 @@ the **on-prem Jenkins controller** the repo is connected to:
 | Reference job | existing `zincbank-e2e` (Pipeline-from-SCM + `Jenkinsfile`) |
 | Node tooling | Jenkins **NodeJS** global tool, name `NodeJS` |
 | Key plugins | Pipeline (`workflow-*`), Git, Credentials, Plain Credentials, NodeJS, Timestamper |
+| Desktop auto-open | interactive scheduled task `zincbank-open-reports` (helper `jenkins/open-reports-on-desktop.ps1`) |
 
 It makes the suite run automatically — on a schedule, after code is pushed
 (polling; webhooks cannot reach `localhost` from GitHub), or on demand — and
@@ -68,6 +69,15 @@ commands that pass locally):
    with the **Recommended Allure 3** installer (managed runtime; no global
    install). Do not use `allureVersion: '3'` (legacy PATH-based Allure 3).
 8. Archive `reports/**` + `allure-report/**` + `test-results/**` in `post { always }`
+9. (Local controller only) After archiving, pop the fresh reports on the
+   logged-in desktop: write `open-reports-request.json` into the workspace and
+   run `schtasks /run /tn "zincbank-open-reports"`. Jenkins runs as a session-0
+   Windows service, so a plain `start` would be invisible — the interactive
+   task (`jenkins/open-reports-on-desktop.ps1`) opens the Cucumber HTML file
+   and this build's Allure-plugin URL in the user's browser. Best-effort only
+   (wrapped in try/catch + `exit /b 0`) — never flips a build result. Runs for
+   manual, cron and SCM-poll builds. Prerequisite: the task must be registered
+   once in the user's session (see `jenkins/README.md`).
 
 Rules:
 
@@ -168,6 +178,10 @@ Credentials and job XML follow the existing `zincbank-e2e` job pattern (see
 5. A real Jenkins build is **green**, the reports are archived on the build,
    and the build/job pages show the native **"Allure Report"** link
    (`/job/<job>/<build>/allure/`).
+6. On the local controller the reports also auto-open on the logged-in desktop
+   after the build (manual AND automatic triggers; requires the one-time
+   `zincbank-open-reports` task registration — see `jenkins/README.md`); check
+   `open-reports-desktop.log` in the job workspace for what was opened.
 
 ---
 

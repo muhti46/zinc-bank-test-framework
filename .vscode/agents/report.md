@@ -73,6 +73,15 @@ Rules:
   `BUILD_TAG`) and skips the `report:open*` steps there. Scripted loops use
   `npm test -- --no-open`. Jenkins still runs the explicit `report:generate` +
   `report:allure:generate` steps after `npm test` (idempotent).
+- The Allure HTML report must be **served over HTTP** to render: Allure loads
+  its data with `fetch()`, which browsers block on `file://` pages — so opening
+  `allure-report/index.html` directly shows an empty "Failed to fetch" report.
+  `npm run report:open:allure` therefore starts a tiny 127.0.0.1-only static
+  server (`src/utils/allureReportServer.ts`, port 3759) via
+  `src/utils/openAllureReport.ts` and opens the report in the default browser.
+  The server self-exits after 20 idle minutes; a later run reuses the running
+  instance, which reads the report from disk and always serves the newest run.
+  The Cucumber HTML report is self-contained and opens fine as a plain file.
 - Never commit generated content. Only `.gitkeep` placeholders for `reports/`,
   `allure-results/` and `test-results/screenshots/` live in git;
   `allure-report/` is fully git-ignored.
@@ -92,7 +101,11 @@ timestamp). View locally with `npm run report:open`.
 
 The `allure-cucumberjs` package (v3, peer `@cucumber/cucumber >=10.8`) is
 registered as a **format** in `cucumber.js` (`allure-cucumberjs/reporter`) and
-writes `allure-results/` during the test run. To enrich the report:
+writes `allure-results/` during the test run.
+
+View locally with `npm run report:open:allure` — it serves the report over
+`http://127.0.0.1:3759` because a direct `file://` open renders blank (see the
+Rules above). To enrich the report:
 
 - `formatOptions.environmentInfo` in `cucumber.js` adds the environment block
   on the Allure overview page (OS, Node version).
@@ -149,8 +162,10 @@ A red build still ships debuggable evidence.
    scripted loops).
 3. `reports/cucumber-report.json`, `reports/cucumber-report.html` and
    `allure-report/index.html` all exist; `allure-results/` is non-empty.
-4. Open `allure-report/index.html` → scenarios listed; any failed scenario
-   shows the attached screenshot.
+4. `npm test` opens both reports in the browser: the Allure report is served
+   over `http://127.0.0.1:3759` (never a raw `file://` open — that renders
+   blank) and lists the scenarios; any failed scenario shows the attached
+   screenshot.
 5. On Jenkins: build is green, the archived artifact list contains the
    Allure `index.html` and the Cucumber HTML report, and the build page shows
    the native **"Allure Report"** link (Allure Jenkins Plugin, managed Allure 3

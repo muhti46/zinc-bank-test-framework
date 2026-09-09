@@ -3,7 +3,10 @@
 //   2. ALWAYS builds both reports afterwards - even when the suite fails -
 //      mirroring the Jenkins `TEST_EXIT` pattern so a red run still ships
 //      debuggable evidence
-//   3. opens both reports in the default browser (Windows `start` command) -
+//   3. opens both reports in the default browser (Windows: the Cucumber file
+//      via `start`, the Allure report via a tiny local HTTP server - see
+//      `src/utils/openAllureReport.ts`; a raw `file://` Allure open renders
+//      blank because Allure loads its data with fetch()) -
 //      but ONLY on a real local machine. CI is detected via environment
 //      markers (JENKINS_URL / JENKINS_HOME / BUILD_NUMBER / CI /
 //      GITHUB_ACTIONS) and the browser steps are skipped there, so a build

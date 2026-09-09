@@ -140,6 +140,27 @@ pipeline {
             archiveArtifacts artifacts: 'reports/**', allowEmptyArchive: true
             archiveArtifacts artifacts: 'allure-report/**', allowEmptyArchive: true
             archiveArtifacts artifacts: 'test-results/**', allowEmptyArchive: true
+
+            // Desktop convenience on the LOCAL controller: after EVERY completed
+            // build (manual, cron or SCM-poll) pop the freshly built reports on
+            // the logged-in desktop. Jenkins runs as a Windows service in
+            // session 0, so a plain `start` would be invisible - instead we
+            // trigger the interactive 'zincbank-open-reports' scheduled task
+            // (registered in the user's session; see jenkins/README.md). That
+            // task opens the Cucumber HTML file and this build's Allure-plugin
+            // URL (Allure renders blank when opened as a file:// page).
+            // Best-effort only: a problem here must never flip the build result.
+            script {
+                try {
+                    bat '''
+                        powershell -NoProfile -Command "$ErrorActionPreference='Stop'; $ws = $env:WORKSPACE; if (-not $ws) { $ws = (Get-Location).Path }; $base = if ($env:JENKINS_URL) { $env:JENKINS_URL } else { 'http://localhost:8080/' }; $req = @{ cucumberHtml = Join-Path $ws 'reports\cucumber-report.html'; allureUrl = ($base + 'job/' + $env:JOB_NAME + '/' + $env:BUILD_NUMBER + '/allure/'); allureHtml = Join-Path $ws 'allure-report\index.html'; buildNumber = $env:BUILD_NUMBER } | ConvertTo-Json; Set-Content -Path (Join-Path $ws 'open-reports-request.json') -Value $req -Encoding UTF8"
+                        schtasks /run /tn "zincbank-open-reports"
+                        exit /b 0
+                    '''
+                } catch (Exception e) {
+                    echo "Desktop auto-open skipped (not fatal): ${e}"
+                }
+            }
         }
         success {
             echo 'All tests passed. Reports: reports/cucumber-report.html and allure-report/index.html'

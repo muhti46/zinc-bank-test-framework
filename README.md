@@ -88,12 +88,18 @@ npx playwright install chromium
 | `npm run report:allure:generate`  | Builds the Allure HTML report from `allure-results/` (no test run)    |
 | `npm run report:all`              | Builds **both** reports from the last test run (no test run)          |
 | `npm run report:open`             | Opens the Cucumber HTML report in your browser (Windows)              |
-| `npm run report:open:allure`      | Opens the Allure HTML report in your browser (Windows)                |
+| `npm run report:open:allure`      | Opens the Allure HTML report in your browser via a local HTTP server (Windows) |
 | `npm run report:clean`            | Deletes `reports/`, `allure-results/`, `allure-report/` and `test-results/` |
 
 > On macOS / Linux open the report with `open reports/cucumber-report.html`.
 > `npm test -- --no-open` runs the suite + builds both reports without opening
 > the browser (handy for scripted loops like the Healer's 10× stability run).
+>
+> **Allure note:** `npm run report:open:allure` serves the report over
+> `http://127.0.0.1:3759` (tiny local server in `src/utils/allureReportServer.ts`,
+> self-exits after 20 idle minutes). Allure loads its data with `fetch()`, which
+> browsers block on `file://` pages — double-clicking `allure-report/index.html`
+> directly would show an **empty** report.
 
 ### Where are the results?
 
@@ -501,6 +507,12 @@ that reads the `Jenkinsfile` in the repo root.
   and SCM polling (webhooks cannot reach a `localhost` controller).
 - **Secrets:** the framework's env values are stored as Jenkins credentials and
   referenced by ID — they are never committed.
+- **Reports auto-open on your desktop:** after **every** completed build
+  (manual, nightly cron or SCM-poll) the Cucumber HTML report and that build's
+  Allure report open automatically in your default browser. The pipeline
+  triggers the interactive scheduled task `zincbank-open-reports` (Jenkins runs
+  as a session-0 service, so a plain `start` would be invisible) — see
+  [`jenkins/README.md`](jenkins/README.md).
 
 Full runbook (Jenkins prerequisites, credential IDs, job settings, local
 verification): see **[`jenkins/README.md`](jenkins/README.md)**.

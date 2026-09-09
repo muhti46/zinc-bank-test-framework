@@ -25,3 +25,11 @@ publish Allure on the build page via
 failure whose root cause is a flaky test is a **Healer ticket** — hand off
 rather than weakening the pipeline. YAML/Groovy must stay valid; never print or
 commit credentials.
+
+On the **local controller** the pipeline also auto-opens the fresh Cucumber +
+Allure reports on the logged-in desktop after every build (manual, cron and
+SCM-poll). The controller runs as a session-0 Windows service, so the
+Jenkinsfile's `post { always }` writes `open-reports-request.json` and runs
+`schtasks /run /tn "zincbank-open-reports"` (best-effort, `exit /b 0`). The
+interactive task runs `jenkins/open-reports-on-desktop.ps1`; it must be
+registered once from the user's session — setup snippet in `jenkins/README.md`.
