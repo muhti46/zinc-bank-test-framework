@@ -125,7 +125,7 @@ pipeline {
                 try {
                     step([
                         $class: 'AllureReportPublisher',
-                        commandline: 'allure-2.2',
+                        commandline: 'allure3',
                         includeProperties: false,
                         reportBuildPolicy: 'ALWAYS',
                         results: [[path: 'allure-results']]
