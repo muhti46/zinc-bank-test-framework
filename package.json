@@ -7,6 +7,8 @@
     "test": "ts-node src/utils/runTestWithReports.ts",
     "test:html": "cucumber-js && npm run report:generate",
     "test:reports": "ts-node src/utils/runTestWithReports.ts",
+    "test:us00": "ts-node src/utils/runTestWithReports.ts --tags @US00",
+    "test:us01": "ts-node src/utils/runTestWithReports.ts --tags @US01",
     "report:generate": "ts-node src/utils/reportGenerator.ts",
     "report:allure:generate": "allure generate allure-results --clean -o allure-report",
     "report:open": "start reports/cucumber-report.html",

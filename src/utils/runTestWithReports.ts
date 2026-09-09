@@ -41,6 +41,22 @@ const isCI = [
 const noOpenFlag =
   process.argv.includes('--no-open') || process.env.TEST_NO_OPEN === '1';
 
+// Extra CLI arguments are forwarded straight to cucumber-js so you can filter
+// what runs without losing the report pipeline. Examples:
+//   npm run test:us01                      -> ts-node .../runTestWithReports.ts --tags @US01
+//   npm test -- --tags "@US01-AC6"         -> runs a single scenario + reports
+// ts-node keeps the script path as the first argv entry; driver-specific flags
+// (--no-open) are consumed here and never reach cucumber.
+const DRIVER_FLAGS = new Set(['--no-open']);
+
+function cucumberArgs(): string[] {
+  const args = process.argv.slice(2);
+  if (args.length > 0 && !args[0].startsWith('-')) {
+    args.shift(); // the script path itself (ts-node)
+  }
+  return args.filter((arg) => !DRIVER_FLAGS.has(arg));
+}
+
 // Report steps always executed after the suite (idempotent; match Jenkinsfile).
 const REPORT_STEPS = [
   'report:generate', // reports/cucumber-report.json -> reports/cucumber-report.html
@@ -62,8 +78,10 @@ function run(cmd: string, args: string[]): number {
 }
 
 // 1) The suite. Run cucumber-js directly (NOT via `npm test` - that would
-//    recurse into this script). Do NOT short-circuit on a red run.
-const suiteExitCode = run('cucumber-js', []);
+//    recurse into this script). Forward extra CLI args (e.g. `--tags @US01`)
+//    so a subset of scenarios can be run through the same report pipeline.
+//    Do NOT short-circuit on a red run.
+const suiteExitCode = run('cucumber-js', cucumberArgs());
 
 // 2) Always build both reports.
 let reportStepFailed = false;
