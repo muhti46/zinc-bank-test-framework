@@ -100,21 +100,55 @@ workspace `allure-report/` produced by `npm run report:allure:generate`
 ## Triggers
 
 - **Manual**: open the job → *Build with Parameters* (pick `full`/`smoke`/`regression`).
-- **Weekday smoke**: `cron('0 8 * * 1-5')` — **Mon–Fri at 08:00** — runs the
-  `@smoke` suite and e-mails the report (see next section).
-- **Weekday regression**: `cron('0 17 * * 1-5')` — **Mon–Fri at 17:00** — runs
-  the `@regression` suite and e-mails the report (see next section).
 - **On push**: `pollSCM('H/5 * * * *')` — the controller listens on `localhost`,
   so GitHub webhooks cannot reach it; polling is used instead. Push builds run
   the full suite.
 
-## Daily report e-mail (Mon–Fri 08:00 smoke + 17:00 regression)
+### Optional: scheduled weekday builds (smoke & regression)
 
-The scheduled weekday builds — 08:00 **smoke** and 17:00 **regression** — each
-send, at the end of `post { always }`, **one e-mail per scheduled build**
-(manual / push builds do not send e-mail, to avoid inbox spam). The e-mail goes
-to the Jenkins **default recipients** — no address is hardcoded in the
-pipeline.
+The `Jenkinsfile` currently contains only the manual + SCM-poll triggers. If you
+want automated **weekday smoke runs at 08:00** and **weekday regression runs at
+17:00**, you have two options:
+
+**Option A (recommended): Create separate Jenkins jobs**
+
+Create two jobs:
+- `zincbank-test-framework-smoke` — same Jenkinsfile, add `cron('0 8 * * 1-5')`
+  + force `TEST_SUITE=smoke`
+- `zincbank-test-framework-regression` — same Jenkinsfile, add `cron('0 17 * * 1-5')`
+  + force `TEST_SUITE=regression`
+
+This keeps triggers and jobs clean.
+
+**Option B: add triggers to this job**
+
+Edit `Jenkinsfile` lines ~36–41:
+```groovy
+triggers {
+    cron('0 8 * * 1-5')    // Mon–Fri 08:00: smoke
+    cron('0 17 * * 1-5')   // Mon–Fri 17:00: regression
+    pollSCM('H/5 * * * *') // SCM polling
+}
+```
+
+Then modify the **"Run Tests & Build Reports"** stage to map build cause to suite:
+```groovy
+def testCommand = 'npm test' // default: full suite
+if (currentBuild.buildCause.contains('0 8')) { testCommand = 'npm run test:smoke' }
+else if (currentBuild.buildCause.contains('0 17')) { testCommand = 'npm run test:regression' }
+else if (params.TEST_SUITE) { testCommand = "npm run test:${params.TEST_SUITE}" }
+```
+
+**For now, the framework runs on push + manual only.** If you need scheduled runs,
+pick Option A (safer) and create those jobs in Jenkins UI.
+
+## Daily report e-mail (optional for scheduled jobs)
+
+If you add scheduled weekday builds (smoke at 08:00 and regression at 17:00 via
+separate Jenkins jobs or dual-trigger setup), the pipeline's `post { always }`
+detects this via `BUILD_CAUSE` and sends **one e-mail per scheduled build** to
+the Jenkins **default recipients** (manual / push builds do not send e-mail, to
+avoid inbox spam).
 
 One-time setup:
 

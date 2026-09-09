@@ -13,15 +13,11 @@
 //       zincbank-app-error-text
 //
 // Triggers:
-//   - Manual: "Build with Parameters" (choose TEST_SUITE)
-//   - Weekday smoke: Mon-Fri at 08:00 via cron - runs ONLY the @smoke-tagged
-//     scenarios (npm run test:smoke) and e-mails the report to the Jenkins
-//     default recipients (see the post{always} block + jenkins/README.md)
-//   - Weekday regression: Mon-Fri at 17:00 via cron - runs the @regression-
-//     tagged scenarios (npm run test:regression) and e-mails the report the
-//     same way (see the post{always} block + jenkins/README.md)
+//   - Manual: "Build with Parameters" (choose TEST_SUITE: full, smoke, or regression)
 //   - SCM polling every 5 min picks up pushed changes (localhost controller
-//     cannot receive GitHub webhooks) and runs the full suite
+//     cannot receive GitHub webhooks) and runs the full suite.
+//   - Scheduled runs: Optional. For weekday smoke (08:00) and regression (17:00)
+//     builds, create separate Jenkins jobs or add cron triggers (see jenkins/README.md).
 
 pipeline {
     agent any
@@ -34,10 +30,9 @@ pipeline {
     }
 
     triggers {
-        // Weekday smoke run: Mon-Fri (1-5) at 08:00.
-        cron('0 8 * * 1-5')
-        // Weekday regression run: Mon-Fri (1-5) at 17:00.
-        cron('0 17 * * 1-5')
+        // SCM polling: check for pushed changes every 5 minutes and run the full suite.
+        // Scheduled smoke/regression runs (Mon-Fri 08:00 and 17:00) should be configured
+        // as separate Jenkins jobs or via Jenkins UI job triggers (see jenkins/README.md).
         pollSCM('H/5 * * * *')
     }
 
