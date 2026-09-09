@@ -3,6 +3,8 @@ import type { Browser, BrowserContext, Page } from 'playwright';
 
 import { LoginPage } from '../pages/LoginPage';
 import { DashboardPage } from '../pages/DashboardPage';
+import { ProfilePage } from '../pages/ProfilePage';
+import { ApplyPage, type AppliedCustomer } from '../pages/ApplyPage';
 
 /**
  * Cucumber wraps every step (and hook) with its own timeout.
@@ -23,6 +25,20 @@ export class CustomWorld extends World {
   public context!: BrowserContext;
   public page!: Page;
 
+  /**
+   * The throwaway customer opened through the "Open an account" wizard in the
+   * current scenario (set by the "I open a new ZincBank customer account"
+   * step). Each scenario provisions its own account - never shared.
+   */
+  public account?: AppliedCustomer;
+
+  /**
+   * The password a successful password-change step switched the current
+   * customer to (set by "I change my password to ..."). Lets later steps sign
+   * in with the new password on the same throwaway account.
+   */
+  public changedPassword?: string;
+
   /** Shortcut so step definitions can reach the LoginPage object easily. */
   public get loginPage(): LoginPage {
     return new LoginPage(this.page);
@@ -31,6 +47,16 @@ export class CustomWorld extends World {
   /** Shortcut so step definitions can reach the DashboardPage object easily. */
   public get dashboardPage(): DashboardPage {
     return new DashboardPage(this.page);
+  }
+
+  /** Shortcut so step definitions can reach the ProfilePage object easily. */
+  public get profilePage(): ProfilePage {
+    return new ProfilePage(this.page);
+  }
+
+  /** Shortcut so step definitions can reach the ApplyPage object easily. */
+  public get applyPage(): ApplyPage {
+    return new ApplyPage(this.page);
   }
 
   /** Reads an environment variable and throws a helpful error when missing. */
@@ -47,4 +73,5 @@ export class CustomWorld extends World {
 
 // Tell Cucumber to use our World class instead of the default one.
 setWorldConstructor(CustomWorld);
+
 

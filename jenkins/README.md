@@ -143,7 +143,10 @@ change needed. To switch the daily runs to different times/days, change the
 > The smoke suite is defined by the `@smoke` Cucumber tag — currently the three
 > critical-path scenarios (login with valid credentials, dashboard redirect,
 > dashboard navigation). The regression suite is defined by the `@regression`
-> tag — currently every other (non-smoke) scenario. Add/remove either tag to
+> tag — every non-smoke login/dashboard scenario plus the nine US002 Customer
+> Profile scenarios (display, editability, save/persist, change-password
+> section, masking, length validation, successful change, wrong-current-password
+> and the success message). Add/remove either tag to
 > change what the daily runs cover; `npm run test:smoke` / `npm run
 > test:regression` on your machine reproduce them.
 
