@@ -126,8 +126,14 @@ if (isCI) {
     '[test] CI environment detected - reports were built but NOT opened in a browser.'
   );
 } else if (noOpenFlag) {
+  // Most likely a leftover from scripted verification loops (Healer's 10x run
+  // etc.) - spell out exactly how to un-stick the browser opening.
+  const source = process.argv.includes('--no-open')
+    ? '--no-open was passed on the command line'
+    : 'TEST_NO_OPEN is set in this terminal session';
   console.log(
-    '[test] --no-open set - reports built, not opened. Open manually: reports/cucumber-report.html  or  allure-report/index.html'
+    `[test] Reports built but NOT opened (${source}). ` +
+      'Unset it with:  Remove-Item Env:TEST_NO_OPEN  (PowerShell)  /  set TEST_NO_OPEN=  (cmd)'
   );
 } else {
   for (const step of OPEN_STEPS) {
