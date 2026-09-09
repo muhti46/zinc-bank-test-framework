@@ -22,6 +22,7 @@
 // browser is never opened on the agent - see the env-marker check below.
 
 import { spawnSync } from 'node:child_process';
+import { existsSync, rmSync } from 'node:fs';
 
 const isWindows = process.platform === 'win32';
 
@@ -76,6 +77,31 @@ function run(cmd: string, args: string[]): number {
   }
   return result.status ?? 0;
 }
+
+// Remove stale raw results before the suite so each report reflects ONLY the
+// scenarios that ran just now. `allure generate --clean` cleans the OUTPUT
+// (allure-report/) but NOT the INPUT (allure-results/) - leftover files from
+// earlier runs keep showing up in every new report (old/renamed scenarios,
+// broken records from previous sessions, etc.). Same for the cucumber JSON.
+function cleanRawResults(): void {
+  const rawDirs = [
+    'allure-results', // raw cucumber->allure bridge files (one per run)
+    'reports/cucumber-report.json' // single-file cucumber JSON (overwritten anyway)
+  ];
+  for (const target of rawDirs) {
+    if (!existsSync(target)) continue;
+    if (target.endsWith('.json')) {
+      rmSync(target, { force: true });
+    } else {
+      rmSync(target, { recursive: true, force: true });
+    }
+  }
+  console.log('[test] Cleared stale raw results (allure-results/, reports/cucumber-report.json).');
+}
+
+// 0) Wipe stale raw results first - otherwise every report mixes in
+//    leftovers from earlier runs (see cleanRawResults above).
+cleanRawResults();
 
 // 1) The suite. Run cucumber-js directly (NOT via `npm test` - that would
 //    recurse into this script). Forward extra CLI args (e.g. `--tags @US01`)
