@@ -153,7 +153,7 @@ pipeline {
             script {
                 try {
                     bat '''
-                        powershell -NoProfile -Command "$ErrorActionPreference='Stop'; $ws = $env:WORKSPACE; if (-not $ws) { $ws = (Get-Location).Path }; $base = if ($env:JENKINS_URL) { $env:JENKINS_URL } else { 'http://localhost:8080/' }; $req = @{ cucumberHtml = Join-Path $ws 'reports\cucumber-report.html'; allureUrl = ($base + 'job/' + $env:JOB_NAME + '/' + $env:BUILD_NUMBER + '/allure/'); allureHtml = Join-Path $ws 'allure-report\index.html'; buildNumber = $env:BUILD_NUMBER } | ConvertTo-Json; Set-Content -Path (Join-Path $ws 'open-reports-request.json') -Value $req -Encoding UTF8"
+                        powershell -NoProfile -Command "$ErrorActionPreference='Stop'; $ws = $env:WORKSPACE; if (-not $ws) { $ws = (Get-Location).Path }; $base = if ($env:JENKINS_URL) { $env:JENKINS_URL } else { 'http://localhost:8080/' }; $req = @{ cucumberHtml = Join-Path $ws 'reports\\cucumber-report.html'; allureUrl = ($base + 'job/' + $env:JOB_NAME + '/' + $env:BUILD_NUMBER + '/allure/'); allureHtml = Join-Path $ws 'allure-report\\index.html'; buildNumber = $env:BUILD_NUMBER } | ConvertTo-Json; Set-Content -Path (Join-Path $ws 'open-reports-request.json') -Value $req -Encoding UTF8"
                         schtasks /run /tn "zincbank-open-reports"
                         exit /b 0
                     '''
