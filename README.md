@@ -84,6 +84,9 @@ npx playwright install chromium
 | `npm test`                        | Runs all scenarios; builds **both** reports and opens them in your browser (local machine only) |
 | `npm run test:html`               | Runs the tests AND builds the Cucumber HTML report                    |
 | `npm run test:reports`            | Alias of `npm test` (same driver) — kept so scripts/CI docs that reference it keep working |
+| `npm run test:us00`               | Runs **only the US00 scenarios** (Customer Login) with the full report pipeline + auto-open |
+| `npm run test:us01`               | Runs **only the US01 scenarios** (Customer Dashboard) with the full report pipeline + auto-open |
+| `npm test -- --tags "@US01-AC6"`  | Any `--tags` filter runs through the same driver — single scenario, multiple USs, custom tags + reports |
 | `npm run report:generate`         | Builds the Cucumber HTML report from the last JSON report (no test run) |
 | `npm run report:allure:generate`  | Builds the Allure HTML report from `allure-results/` (no test run)    |
 | `npm run report:all`              | Builds **both** reports from the last test run (no test run)          |
@@ -100,6 +103,13 @@ npx playwright install chromium
 > self-exits after 20 idle minutes). Allure loads its data with `fetch()`, which
 > browsers block on `file://` pages — double-clicking `allure-report/index.html`
 > directly would show an **empty** report.
+>
+> **Fresh reports only:** the driver purges stale raw results
+> (`allure-results/` contents + `reports/cucumber-report.json`) **before** every
+> run, so the Allure/Cucumber HTML reports always reflect exactly the scenarios
+> that just ran. (`allure generate --clean` alone only cleans the output folder
+> `allure-report/`, not the input `allure-results/` — leftover files from older
+> runs would otherwise keep showing up in every new report.)
 
 ### Where are the results?
 

@@ -22,7 +22,7 @@
 // browser is never opened on the agent - see the env-marker check below.
 
 import { spawnSync } from 'node:child_process';
-import { existsSync, rmSync } from 'node:fs';
+import { existsSync, readdirSync, rmSync } from 'node:fs';
 
 const isWindows = process.platform === 'win32';
 
@@ -83,19 +83,21 @@ function run(cmd: string, args: string[]): number {
 // (allure-report/) but NOT the INPUT (allure-results/) - leftover files from
 // earlier runs keep showing up in every new report (old/renamed scenarios,
 // broken records from previous sessions, etc.). Same for the cucumber JSON.
+// IMPORTANT: `.gitkeep` files are repo-governed (the Report agent requires
+// .gitkeep-only commits) - purge the folder CONTENTS, never the folder itself.
 function cleanRawResults(): void {
-  const rawDirs = [
-    'allure-results', // raw cucumber->allure bridge files (one per run)
-    'reports/cucumber-report.json' // single-file cucumber JSON (overwritten anyway)
-  ];
-  for (const target of rawDirs) {
-    if (!existsSync(target)) continue;
-    if (target.endsWith('.json')) {
-      rmSync(target, { force: true });
-    } else {
-      rmSync(target, { recursive: true, force: true });
+  const KEEP = new Set(['.gitkeep']);
+  if (existsSync('allure-results')) {
+    for (const entry of readdirSync('allure-results')) {
+      if (KEEP.has(entry)) continue;
+      rmSync(`allure-results/${entry}`, {
+        recursive: true,
+        force: true
+      });
     }
   }
+  // Single-file cucumber JSON (gitignored; overwritten every run anyway).
+  rmSync('reports/cucumber-report.json', { force: true });
   console.log('[test] Cleared stale raw results (allure-results/, reports/cucumber-report.json).');
 }
 
