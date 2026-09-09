@@ -2,6 +2,7 @@ import { setDefaultTimeout, setWorldConstructor, World } from '@cucumber/cucumbe
 import type { Browser, BrowserContext, Page } from 'playwright';
 
 import { LoginPage } from '../pages/LoginPage';
+import { DashboardPage } from '../pages/DashboardPage';
 
 /**
  * Cucumber wraps every step (and hook) with its own timeout.
@@ -25,6 +26,11 @@ export class CustomWorld extends World {
   /** Shortcut so step definitions can reach the LoginPage object easily. */
   public get loginPage(): LoginPage {
     return new LoginPage(this.page);
+  }
+
+  /** Shortcut so step definitions can reach the DashboardPage object easily. */
+  public get dashboardPage(): DashboardPage {
+    return new DashboardPage(this.page);
   }
 
   /** Reads an environment variable and throws a helpful error when missing. */
