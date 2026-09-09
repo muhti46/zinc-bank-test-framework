@@ -114,14 +114,14 @@ generate reports even when tests fail and archive them in
   plugin:
   ```groovy
   step([$class: 'AllureReportPublisher',
-        commandline: 'allure3',
         reportBuildPolicy: 'ALWAYS',
         results: [[path: 'allure-results']]])
   ```
   wrapped in a try/catch so a publishing problem never flips the build result.
-  The `allure3` tool is an **Allure 3** installation (Allure Jenkins Plugin
-  3.x "recommended": the plugin bundles the Allure runtime and installs a
-  private Node.js runtime on first use).
+  Do not set `commandline` with the **3.x** plugin — it is an Allure 2-only
+  option; the plugin automatically uses the **Allure 3** installation (the
+  `allure3` tool, "recommended": the plugin bundles the Allure runtime and
+  installs a private Node.js runtime on first use).
 
 - `reports/cucumber-report.json` and `reports/cucumber-report.html`
 - `allure-report/` (whole tree, entry `allure-report/index.html`)

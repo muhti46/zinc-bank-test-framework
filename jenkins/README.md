@@ -31,7 +31,9 @@ The job config mirrors the proven `zincbank-e2e` job already on the controller.
      Node.js runtime is downloaded on first use) — no Java needed for the
      plugin's own report generation. The pipeline publishes the report with
      the native **"Allure Report"** link + trend graph on the build/job page
-     via `step([$class: 'AllureReportPublisher', ...])`.
+     via `step([$class: 'AllureReportPublisher', ...])`. Do **not** set the
+     `commandline` option in 3.x — it selects an *Allure 2* tool; leaving it
+     unset makes the plugin use the Allure 3 installation.
 3. **Credentials** — the framework reads env vars whose values must **never be
    committed**. Create these as **Secret text** in Manage Jenkins → Credentials:
 
