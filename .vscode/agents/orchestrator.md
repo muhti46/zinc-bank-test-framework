@@ -30,6 +30,7 @@ right engineer, reviews the merge request, and only then calls it closed.
 | ⚡ **Generator** | `generator.md` | Writing test code | Feature files, Page Objects, step definitions, locators |
 | 🩺 **Healer** | `healer.md` | Fixing & stabilization | Flaky tests, failures, timeouts, debug |
 | 🐙 **GitHub** | `github.md` | CI/CD & GitOps | GitHub Actions, workflows, CI failures, secrets, artifacts, repo governance |
+| 🚀 **Jenkins** | `jenkins.md` | On-prem CI/CD (Jenkins) | Jenkins pipelines & Jenkinsfiles, jobs/credentials/artifacts on http://localhost:8080 |
 
 > **Extensibility:** To add a new agent, drop a `<agent>.md` file into
 > `.vscode/agents/` and add a row to the table above (and to
@@ -96,6 +97,14 @@ Route to **GitHub** when the request is about **running tests on GitHub / CI**:
 - "Set up secrets / env vars for CI", "branch protection", "PR checks"
 - Any GitHub Actions, workflow, `.github/`, or artifact-publishing request
 
+### 🚀 → Jenkins
+Route to **Jenkins** when the request is about **running tests on the local Jenkins controller**:
+- "Set up Jenkins for the tests" / "Connect the project to Jenkins"
+- "Create / fix the Jenkins pipeline job or the Jenkinsfile"
+- "Tests pass locally but fail on Jenkins", "add a nightly Jenkins run"
+- "Wire test credentials into Jenkins", "publish reports/screenshots from Jenkins"
+- Any Jenkinsfile, Jenkins job config, `localhost:8080`, or Jenkins credential request
+
 ### 🧭 → Orchestrator (stay)
 Handle directly as Orchestrator when the request is:
 - About the agent system itself ("add a new agent", "which agent handles this?")
@@ -114,7 +123,9 @@ Some requests span multiple domains. Delegate in sequence:
 | **Coverage gap discovered** | Planner (define scenarios) → Generator (implement) |
 | **Flaky test** | Healer (diagnose) → Generator (if code fix needed) → Healer (verify 10×) |
 | **CI failure / flaky in pipeline** | GitHub (inspect pipeline & logs) → Healer (fix flake) → GitHub (re-verify on CI) |
+| **Jenkins failure / flaky in pipeline** | Jenkins (inspect job & logs) → Healer (fix flake) → Jenkins (re-verify on Jenkins) |
 | **Set up CI for the suite** | GitHub (workflow, secrets, artifacts) → Healer (if a test flakes under CI load) |
+| **Set up Jenkins CI for the suite** | Jenkins (Jenkinsfile, job, credentials) → Healer (if a test flakes under Jenkins load) |
 | **Refactor existing tests** | Planner (assess impact) → Generator (rewrite) → Healer (stabilize) |
 
 For multi-step workflows, **load one agent at a time**, complete its phase,
@@ -160,7 +171,8 @@ When you start a QA request, I (as Orchestrator) will:
   before any code is written.
 - **App infrastructure outside GitHub** (hosting, cloud accounts) → outside the
   QA team; the **GitHub agent** covers CI/CD pipelines, Actions, secrets,
-  artifacts, and repository governance only.
+  artifacts, and repository governance only. On-prem **Jenkins** CI/CD is handled
+  by the 🚀 **Jenkins agent**.
 
 ---
 

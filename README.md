@@ -391,6 +391,7 @@ CI.
 | ⚡ **Generator** | `.vscode/agents/generator.md` | Test code & feature generation |
 | 🩺 **Healer** | `.vscode/agents/healer.md` | Flaky test healing & stabilization |
 | 🐙 **GitHub** | `.vscode/agents/github.md` | CI/CD & GitOps (Actions, secrets, artifacts, repo governance) |
+| 🚀 **Jenkins** | `.vscode/agents/jenkins.md` | On-prem CI/CD (Jenkins controller at http://localhost:8080, pipelines, jobs, credentials) |
 
 ### How It Runs Automatically
 
@@ -402,7 +403,8 @@ The magic is in `.clinerules/` — Cline's auto-loaded rules directory:
 ├── 10-planner-features.md       # Auto-activates when working on features/**
 ├── 11-generator-source.md       # Auto-activates when working on src/** test code
 ├── 12-healer-results.md         # Auto-activates when inspecting test-results/**
-└── 13-github-ci.md              # Auto-activates when working on CI / .github/**
+├── 13-github-ci.md              # Auto-activates when working on CI / .github/**
+└── 14-jenkins-ci.md             # Auto-activates on Jenkinsfile / jenkins/**
 ```
 
 1. **Every Cline session** loads `01-orchestrator-routing.md` automatically.
@@ -410,7 +412,7 @@ The magic is in `.clinerules/` — Cline's auto-loaded rules directory:
    writing code vs. fixing a failure).
 3. It **loads the matching agent's playbook** from `.vscode/agents/` and
    executes the task as that agent (templates, conventions, verification).
-4. Context rules (10/11/12/13) additionally auto-activate an expert whenever
+4. Context rules (10/11/12/13/14) additionally auto-activate an expert whenever
    you touch the relevant files — no prompt needed.
 
 > **Note:** the agents are **markdown playbooks** consumed by Cline — they are
@@ -442,5 +444,27 @@ No other wiring is required — the Orchestrator picks it up next session.
 | `clean reports` | Remove `reports/` and `test-results/` |
 
 ---
+
+## 10. Jenkins CI
+
+The suite can also run on the **local Jenkins controller** (`http://localhost:8080`).
+The repository is wired as a **Pipeline-from-SCM** job (`zincbank-test-framework`)
+that reads the `Jenkinsfile` in the repo root.
+
+- **Pipeline stages:** `npm ci` → `npx playwright install chromium` →
+  `npm run typecheck` → `npm test` (+ `npm run report:generate`).
+- **Artifacts archived on every build:** `reports/cucumber-report.html`,
+  `reports/cucumber-report.json`, `test-results/screenshots/*.png`.
+- **Triggers:** manual *Build with Parameters*, nightly cron (`Mo–Sa 08:00`),
+  and SCM polling (webhooks cannot reach a `localhost` controller).
+- **Secrets:** the framework's env values are stored as Jenkins credentials and
+  referenced by ID — they are never committed.
+
+Full runbook (Jenkins prerequisites, credential IDs, job settings, local
+verification): see **[`jenkins/README.md`](jenkins/README.md)**.
+
+---
+
+
 
 
