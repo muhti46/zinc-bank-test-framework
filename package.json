@@ -6,7 +6,7 @@
   "scripts": {
     "test": "cucumber-js",
     "test:html": "cucumber-js && npm run report:generate",
-    "test:reports": "cucumber-js && npm run report:all",
+    "test:reports": "ts-node src/utils/runTestWithReports.ts",
     "report:generate": "ts-node src/utils/reportGenerator.ts",
     "report:allure:generate": "allure generate allure-results --clean -o allure-report",
     "report:open": "start reports/cucumber-report.html",

@@ -51,7 +51,11 @@ Allure HTML report, plus the failure screenshots that go with them.
 3. `npm run report:allure:generate` — `allure generate allure-results --clean
    -o allure-report` builds `allure-report/index.html`.
 4. `npm run report:all` — runs steps 2 + 3 without re-running the tests.
-5. `npm run test:reports` — runs the tests **and** builds both reports.
+5. `npm run test:reports` — runs the tests, builds both reports **and opens
+   both in the default browser** (driver `src/utils/runTestWithReports.ts`).
+   Reports build + open even when the suite fails, and the suite's exit code is
+   preserved (a report-step failure only turns the result non-zero when the
+   tests themselves passed).
 6. CI archives `reports/**`, `allure-report/**`, `test-results/**` on **every**
    build (see the Jenkins / GitHub agent playbooks for the pipeline side).
 
@@ -62,7 +66,9 @@ Rules:
   report:clean` and a fresh Jenkins workspace both start from zero.
 - Allure's CLI is Java-based → `java` must be on the PATH of whatever runs
   `npm run report:allure:generate` (local machine, and the Jenkins controller).
-- Never open reports in CI (`report:open*` are local-only `start` commands).
+- Never open reports in CI (`report:open*` are local-only `start` commands, and
+  `test:reports` auto-opens the browser → CI must use `npm test` +
+  `report:generate` + `report:allure:generate` instead).
 - Never commit generated content. Only `.gitkeep` placeholders for `reports/`,
   `allure-results/` and `test-results/screenshots/` live in git;
   `allure-report/` is fully git-ignored.
@@ -134,7 +140,8 @@ A red build still ships debuggable evidence.
 ## 5. Verification Protocol (Before Declaring Done)
 
 1. `npm run typecheck` passes (if TS changed — e.g. `hooks.ts`).
-2. `npm run test:reports` runs green locally.
+2. `npm run test:reports` runs green locally (and opens both reports in the
+   default browser when it finishes).
 3. `reports/cucumber-report.json`, `reports/cucumber-report.html` and
    `allure-report/index.html` all exist; `allure-results/` is non-empty.
 4. Open `allure-report/index.html` → scenarios listed; any failed scenario

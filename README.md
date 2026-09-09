@@ -83,7 +83,7 @@ npx playwright install chromium
 | --------------------------------- | --------------------------------------------------------------------- |
 | `npm test`                        | Runs all scenarios; writes `reports/cucumber-report.json` and raw Allure data into `allure-results/` |
 | `npm run test:html`               | Runs the tests AND builds the Cucumber HTML report                    |
-| `npm run test:reports`            | Runs the tests AND builds **both** reports (Cucumber HTML + Allure HTML) |
+| `npm run test:reports`            | Runs the tests, builds **both** reports (Cucumber HTML + Allure HTML) and opens them in your browser |
 | `npm run report:generate`         | Builds the Cucumber HTML report from the last JSON report (no test run) |
 | `npm run report:allure:generate`  | Builds the Allure HTML report from `allure-results/` (no test run)    |
 | `npm run report:all`              | Builds **both** reports from the last test run (no test run)          |
@@ -204,8 +204,15 @@ Two reporting layers run on every test run:
   builds `allure-report/index.html`. Failure screenshots are attached to the
   Allure report automatically from `src/hooks/hooks.ts`.
 
-Build both reports with `npm run test:reports`. All reporting conventions live
-in the **📊 Report agent** playbook (`.vscode/agents/report.md`).
+Build both reports with `npm run test:reports` — when the suite finishes the
+driver (`src/utils/runTestWithReports.ts`) **opens both reports in your default
+browser automatically** (Windows). Reports are built and opened even when a test
+fails (the suite's exit code is preserved), so you always see the evidence. The
+browser-opening `report:open*` steps are local-only and are skipped on
+macOS/Linux with a manual-open hint. CI never runs `test:reports` (pipeline uses
+`npm test` + `report:generate` + `report:allure:generate`). All reporting
+conventions live in the **📊 Report agent** playbook
+(`.vscode/agents/report.md`).
 
 ### Adding a new scenario
 1. Add the scenario to a `.feature` file using Gherkin.

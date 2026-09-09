@@ -89,7 +89,8 @@ workspace `allure-report/` produced by `npm run report:allure:generate`
 npm ci
 npx playwright install chromium
 npm run typecheck
-npm run test:reports   # runs the tests, then builds Cucumber HTML + Allure HTML
+npm run test:reports   # local only - never used in the pipeline: runs the tests,
+                       # builds BOTH reports and opens them in the browser
 ```
 
 If a test flakes only inside Jenkins, that is a **Healer ticket** — do not mask
