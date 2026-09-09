@@ -52,8 +52,11 @@ commands that pass locally):
 1. `npm ci` — lockfile exists; never `npm install`
 2. `npx playwright install chromium` — Chromium only, no `--with-deps` on Windows
 3. `npm run typecheck` — TS gate *before* running tests
-4. `npm test` — Cucumber; writes `reports/cucumber-report.json` and raw Allure
-   data into `allure-results/`
+4. `npm test` — the local driver `src/utils/runTestWithReports.ts` runs
+   Cucumber (writes `reports/cucumber-report.json` + raw Allure data into
+   `allure-results/`) and then builds both reports. The `report:open*` browser
+   steps are auto-skipped on the agent via CI env markers (`JENKINS_URL` /
+   `BUILD_NUMBER` / ...). Steps 5–6 are therefore idempotent on Jenkins.
 5. `npm run report:generate` — builds `reports/cucumber-report.html` from the JSON
 6. `npm run report:allure:generate` — builds `allure-report/index.html` from
    `allure-results/` (requires `java`, present on a Jenkins controller)
@@ -71,7 +74,9 @@ Rules:
 - Controller is **Windows** → all steps use `bat '...'`.
 - Wrap every Node command in `nodejs(nodeJSInstallationName: 'NodeJS') { ... }`
   so builds use the Jenkins-managed Node, not a machine default.
-- Never call `report:open` (a `start` command) in CI — reports are archived, not opened.
+- Never call `report:open` (a `start` command) in CI — reports are archived,
+  not opened. `npm test` (the driver) already skips the browser automatically
+  when it detects CI env markers.
 - Allure's CLI is Java-based → `java` must resolve inside the `bat` steps. A
   Jenkins controller runs on Java, so it is normally on the PATH; if a build
   ever fails with `allure: command not found` / "requires Java", prepend the JRE
@@ -152,7 +157,9 @@ Credentials and job XML follow the existing `zincbank-e2e` job pattern (see
 ## Verification Protocol (Before Declaring Done)
 
 1. The exact pipeline commands pass **locally** in order:
-   `npm ci && npx playwright install chromium && npm run typecheck && npm run test:reports`
+   `npm ci && npx playwright install chromium && npm run typecheck && npm test`
+   (locally `npm test` also opens both reports in the browser; on the agent
+   that step is auto-skipped. `npm run test:reports` is an alias of `npm test`.)
 2. Every `credentials('<id>')` referenced exists in the Jenkins store.
 3. Artifact globs match real outputs: `reports/cucumber-report.json`,
    `reports/cucumber-report.html`, `allure-report/index.html`,

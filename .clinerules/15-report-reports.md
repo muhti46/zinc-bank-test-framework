@@ -16,8 +16,10 @@ and follow the Report Agent playbook:
 
 📖 **`.vscode/agents/report.md`**
 
-Follow its report contract (`npm test` writes JSON + `allure-results/`,
-`report:generate` → Cucumber HTML, `report:allure:generate` → Allure HTML,
+Follow its report contract (`npm test` — driver `src/utils/runTestWithReports.ts`
+— writes JSON + `allure-results/`, builds both reports and opens them in the
+browser **only on a local machine**; `report:generate` → Cucumber HTML,
+`report:allure:generate` → Allure HTML,
 `--clean` on every Allure generation), the Java requirement for the Allure CLI,
 `.gitkeep`-only commits, and the artifact globs CI must archive
 (`reports/**`, `allure-report/**`, `test-results/**`). If the problem is a

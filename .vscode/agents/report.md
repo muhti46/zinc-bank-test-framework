@@ -43,19 +43,20 @@ Allure HTML report, plus the failure screenshots that go with them.
 
 ## 1. The Reporting Contract (this repo)
 
-1. `npm test` — Cucumber runs, writes `reports/cucumber-report.json` **and**
-   raw Allure data into `allure-results/` (formatter
-   `allure-cucumberjs/reporter` declared in `cucumber.js`).
+1. `npm test` — the driver `src/utils/runTestWithReports.ts` runs Cucumber
+   (writes `reports/cucumber-report.json` **and** raw Allure data into
+   `allure-results/` via the `allure-cucumberjs/reporter` formatter declared in
+   `cucumber.js`), then always builds both reports and — on a real local
+   machine — opens them in the default browser. The suite's exit code is
+   preserved even when a red run still ships its reports.
 2. `npm run report:generate` — builds `reports/cucumber-report.html` from the
    JSON (via `src/utils/reportGenerator.ts`).
 3. `npm run report:allure:generate` — `allure generate allure-results --clean
    -o allure-report` builds `allure-report/index.html`.
 4. `npm run report:all` — runs steps 2 + 3 without re-running the tests.
-5. `npm run test:reports` — runs the tests, builds both reports **and opens
-   both in the default browser** (driver `src/utils/runTestWithReports.ts`).
-   Reports build + open even when the suite fails, and the suite's exit code is
-   preserved (a report-step failure only turns the result non-zero when the
-   tests themselves passed).
+5. `npm run test:reports` — explicit alias of the `npm test` driver
+   (`src/utils/runTestWithReports.ts`): runs the suite, always builds both
+   reports and opens them in the default browser (local machine only).
 6. CI archives `reports/**`, `allure-report/**`, `test-results/**` on **every**
    build (see the Jenkins / GitHub agent playbooks for the pipeline side).
 
@@ -66,9 +67,12 @@ Rules:
   report:clean` and a fresh Jenkins workspace both start from zero.
 - Allure's CLI is Java-based → `java` must be on the PATH of whatever runs
   `npm run report:allure:generate` (local machine, and the Jenkins controller).
-- Never open reports in CI (`report:open*` are local-only `start` commands, and
-  `test:reports` auto-opens the browser → CI must use `npm test` +
-  `report:generate` + `report:allure:generate` instead).
+- The browser opens **only on a real local machine**. `npm test` (driver
+  `src/utils/runTestWithReports.ts`) detects CI via environment markers (`CI`,
+  `GITHUB_ACTIONS`, `JENKINS_URL`, `JENKINS_HOME`, `BUILD_NUMBER`,
+  `BUILD_TAG`) and skips the `report:open*` steps there. Scripted loops use
+  `npm test -- --no-open`. Jenkins still runs the explicit `report:generate` +
+  `report:allure:generate` steps after `npm test` (idempotent).
 - Never commit generated content. Only `.gitkeep` placeholders for `reports/`,
   `allure-results/` and `test-results/screenshots/` live in git;
   `allure-report/` is fully git-ignored.
@@ -140,8 +144,9 @@ A red build still ships debuggable evidence.
 ## 5. Verification Protocol (Before Declaring Done)
 
 1. `npm run typecheck` passes (if TS changed — e.g. `hooks.ts`).
-2. `npm run test:reports` runs green locally (and opens both reports in the
-   default browser when it finishes).
+2. `npm test` runs green locally and opens both reports in the default browser
+   (`npm run test:reports` is an alias; use `npm test -- --no-open` for
+   scripted loops).
 3. `reports/cucumber-report.json`, `reports/cucumber-report.html` and
    `allure-report/index.html` all exist; `allure-results/` is non-empty.
 4. Open `allure-report/index.html` → scenarios listed; any failed scenario

@@ -4,7 +4,7 @@
   "description": "A beginner-friendly BDD test automation framework built with Playwright, Cucumber (Gherkin) and TypeScript using the Page Object Model.",
   "private": true,
   "scripts": {
-    "test": "cucumber-js",
+    "test": "ts-node src/utils/runTestWithReports.ts",
     "test:html": "cucumber-js && npm run report:generate",
     "test:reports": "ts-node src/utils/runTestWithReports.ts",
     "report:generate": "ts-node src/utils/reportGenerator.ts",

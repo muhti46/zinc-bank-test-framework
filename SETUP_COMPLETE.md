@@ -71,6 +71,11 @@ zinc-bank-test-framework/
 npm test
 ```
 
+> `npm test` also **builds both reports** (Cucumber HTML + Allure HTML) and
+> **opens them in your browser** when the suite finishes — local machine only
+> (CI skips the browser; `npm test -- --no-open` skips it too, for scripted
+> loops).
+
 ### Run Tests & Generate HTML Report
 ```bash
 npm run test:html

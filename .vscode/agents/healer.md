@@ -144,7 +144,8 @@ if (!currentUrl.includes('/dashboard')) {
 return true;
 ```
 
-**Validation:** 10/10 consecutive `npm test` runs green (~8s per run).
+**Validation:** 10/10 consecutive `npm test -- --no-open` runs green (~8s per
+run).
 
 ### Case Study 2: Intermittent "element is not attached to the page"
 
@@ -279,8 +280,10 @@ npm run typecheck
 npm test
 
 # 3. The critical proof: 10 consecutive runs
+#    (--no-open: reports are built every run but the browser must not pop up
+#    10 times - plain `npm test` opens it once, the loop suppresses it)
 for ($i = 1; $i -le 10; $i++) {
-  $out = npm test 2>&1 | Out-String
+  $out = npm test -- --no-open 2>&1 | Out-String
   if ($out -match 'scenarios \(2 passed\)') {
     Write-Host "Run $i/: PASS"
   } else {

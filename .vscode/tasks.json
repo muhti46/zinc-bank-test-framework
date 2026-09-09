@@ -35,7 +35,7 @@
     {
       "label": "stability: 10x flakiness proof",
       "type": "shell",
-      "command": "1..10 | ForEach-Object { Write-Host \"Run $_/10\"; npm test; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } }",
+      "command": "1..10 | ForEach-Object { Write-Host \"Run $_/10\"; npm test -- --no-open; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } }",
       "group": "test",
       "problemMatcher": [],
       "presentation": {
