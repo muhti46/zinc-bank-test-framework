@@ -57,9 +57,11 @@ The job config mirrors the proven `zincbank-e2e` job already on the controller.
 `Checkout` → `Setup Node` (also verifies `java` is available) →
 `Install Dependencies` (`npm ci`) →
 `Install Playwright Browsers` (`npx playwright install chromium`) →
-`Typecheck` → `Run Tests & Build Reports` (`npm test` +
-`npm run report:generate` + `npm run report:allure:generate`, preserving the
-exit code so a failing suite still ships its reports).
+`Typecheck` → `Run Tests & Build Reports` (`npm test` — the driver
+`src/utils/runTestWithReports.ts` runs the suite and also builds both reports
+on the agent; the explicit `npm run report:generate` +
+`npm run report:allure:generate` steps after it are idempotent. The exit code
+is preserved so a failing suite still ships its reports).
 
 Artifacts archived on **every** build (even failures):
 
@@ -89,8 +91,10 @@ workspace `allure-report/` produced by `npm run report:allure:generate`
 npm ci
 npx playwright install chromium
 npm run typecheck
-npm run test:reports   # local only - never used in the pipeline: runs the tests,
-                       # builds BOTH reports and opens them in the browser
+npm test               # runs the tests, builds BOTH reports and opens them in
+                       # the browser (local machine only - on the Jenkins agent
+                       # the browser step is auto-skipped via CI env markers;
+                       # npm run test:reports is an alias of npm test)
 ```
 
 If a test flakes only inside Jenkins, that is a **Healer ticket** — do not mask
