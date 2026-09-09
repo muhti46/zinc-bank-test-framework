@@ -2,7 +2,8 @@
 // Repo: https://github.com/muhti46/zinc-bank-test-framework (public) - branch main.
 //
 // Jenkins prerequisites (see jenkins/README.md):
-//   - Plugins: Pipeline, Git, NodeJS, Timestamper, Build Discarder
+//   - Plugins: Pipeline, Git, NodeJS, Timestamper, Build Discarder,
+//     Allure Jenkins Plugin, HTML Publisher, Email Extension (email-ext)
 //   - Global Tool Configuration: NodeJS installation named "NodeJS"
 //   - Credentials (Secret text) created from your .env values - never committed:
 //       zincbank-app-username
@@ -13,9 +14,11 @@
 //
 // Triggers:
 //   - Manual: "Build with Parameters" (choose TEST_SUITE)
-//   - Nightly (Mo-Sa) at 08:00 via cron
+//   - Weekday smoke: Mon-Fri at 08:00 via cron - runs ONLY the @smoke-tagged
+//     scenarios (npm run test:smoke) and e-mails the report to the Jenkins
+//     default recipients (see the post{always} block + jenkins/README.md)
 //   - SCM polling every 5 min picks up pushed changes (localhost controller
-//     cannot receive GitHub webhooks)
+//     cannot receive GitHub webhooks) and runs the full suite
 
 pipeline {
     agent any
@@ -28,7 +31,8 @@ pipeline {
     }
 
     triggers {
-        cron('0 8 * * 1-6')
+        // Weekday smoke run: Mon-Fri (1-5) at 08:00.
+        cron('0 8 * * 1-5')
         pollSCM('H/5 * * * *')
     }
 
@@ -36,7 +40,7 @@ pipeline {
         choice(
             name: 'TEST_SUITE',
             choices: ['full', 'smoke', 'regression'],
-            description: 'Which suite to run? Currently all choices run the whole suite (features/login.feature); split them later with Cucumber tags if needed.'
+            description: 'Which suite to run? full/regression = all scenarios; smoke = @smoke-tagged scenarios only. The scheduled 08:00 weekday build ALWAYS runs smoke regardless of this value.'
         )
     }
 
@@ -98,18 +102,24 @@ pipeline {
             steps {
                 nodejs(nodeJSInstallationName: 'NodeJS') {
                     script {
-                        echo "Running test suite: ${params.TEST_SUITE ?: 'full'}"
+                        // The scheduled weekday 08:00 build is ALWAYS a smoke
+                        // run. Manual "Build with Parameters" and SCM-poll builds
+                        // use the TEST_SUITE parameter (default full).
+                        def isScheduledSmoke = !(currentBuild.getBuildCauses('hudson.triggers.TimerTrigger') ?: []).isEmpty()
+                        def suite = isScheduledSmoke ? 'smoke' : (params.TEST_SUITE ?: 'full')
+                        def testCmd = suite == 'smoke' ? 'npm run test:smoke' : 'npm test'
+                        echo "Running suite: ${suite} -> ${testCmd}"
+                        // Run the tests, then ALWAYS build BOTH reports (Cucumber
+                        // HTML + Allure HTML), but keep the Cucumber exit code so
+                        // a failing suite stays red.
+                        bat """
+                            call ${testCmd}
+                            set TEST_EXIT=%errorlevel%
+                            call npm run report:generate
+                            call npm run report:allure:generate
+                            exit /b %TEST_EXIT%
+                        """
                     }
-                    // Run the tests, then ALWAYS build BOTH reports (Cucumber
-                    // HTML + Allure HTML), but keep the Cucumber exit code so a
-                    // failing suite stays red.
-                    bat '''
-                        call npm test
-                        set TEST_EXIT=%errorlevel%
-                        call npm run report:generate
-                        call npm run report:allure:generate
-                        exit /b %TEST_EXIT%
-                    '''
                 }
             }
         }
@@ -140,6 +150,56 @@ pipeline {
             archiveArtifacts artifacts: 'reports/**', allowEmptyArchive: true
             archiveArtifacts artifacts: 'allure-report/**', allowEmptyArchive: true
             archiveArtifacts artifacts: 'test-results/**', allowEmptyArchive: true
+
+            // Daily smoke e-mail: sent only for the scheduled weekday 08:00
+            // build (cron trigger), so manual/push builds don't spam the inbox.
+            // Primary: Email Extension plugin (emailext, HTML body + report
+            // attachment). Fallback: plain mail step. Both use the Jenkins
+            // global "default recipients", so no address is committed here -
+            // configure SMTP + recipients in Manage Jenkins -> Configure System
+            // (see jenkins/README.md, "Daily smoke report e-mail").
+            script {
+                def isScheduledSmoke = !(currentBuild.getBuildCauses('hudson.triggers.TimerTrigger') ?: []).isEmpty()
+                if (isScheduledSmoke) {
+                    def subject = "[Jenkins] Smoke report ${env.JOB_NAME} #${env.BUILD_NUMBER} - ${currentBuild.currentResult}"
+                    def body = """
+                        <html><body>
+                        <h2>Smoke test report - ${env.JOB_NAME} #${env.BUILD_NUMBER}</h2>
+                        <p><b>Suite:</b> smoke (@smoke-tagged scenarios)</p>
+                        <p><b>Result:</b> <span style="color:${currentBuild.currentResult == 'SUCCESS' ? 'green' : 'red'};font-weight:bold">${currentBuild.currentResult}</span></p>
+                        <p><b>Build:</b> <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
+                        <h3>Reports</h3>
+                        <ul>
+                            <li>Cucumber HTML report (attached): <a href="${env.BUILD_URL}artifact/reports/cucumber-report.html">cucumber-report.html</a></li>
+                            <li>Allure report: <a href="${env.BUILD_URL}allure/">Allure Report</a></li>
+                            <li>Console log (attached)</li>
+                        </ul>
+                        <p>Failure screenshots (if any) are attached as PNG files.</p>
+                        </body></html>
+                    """
+                    try {
+                        emailext(
+                            to: '$DEFAULT_RECIPIENTS',
+                            subject: subject,
+                            mimeType: 'text/html',
+                            attachLog: true,
+                            attachmentsPattern: 'reports/cucumber-report.html,test-results/screenshots/*.png',
+                            body: body
+                        )
+                    } catch (Exception e) {
+                        echo "emailext failed (${e}); trying the plain mail step."
+                        try {
+                            mail(
+                                to: '$DEFAULT_RECIPIENTS',
+                                subject: subject,
+                                body: "Smoke report for ${env.JOB_NAME} #${env.BUILD_NUMBER}: ${currentBuild.currentResult}. See ${env.BUILD_URL}"
+                            )
+                        } catch (Exception e2) {
+                            echo "E-mail could not be sent (${e2}) - configure SMTP + default recipients in Manage Jenkins -> Configure System."
+                        }
+                    }
+                }
+            }
 
             // Desktop convenience on the LOCAL controller: after EVERY completed
             // build (manual, cron or SCM-poll) pop the freshly built reports on

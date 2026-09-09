@@ -14,7 +14,7 @@ Feature: Customer Dashboard
     When I log in with valid credentials
     Then I should be logged in successfully
 
-  @US01-AC2
+  @US01-AC2 @smoke
   Scenario: User is redirected to the dashboard and sees the dashboard page
     When I log in with valid credentials
     Then I should be redirected to the dashboard
@@ -34,7 +34,7 @@ Feature: Customer Dashboard
     Then I should be redirected to the login page
     And I should not see any protected dashboard content
 
-  @US01-AC5
+  @US01-AC5 @smoke
   Scenario: Dashboard sidebar displays all required navigation elements
     When I log in with valid credentials
     Then the sidebar should display the navigation elements "Dashboard, Accounts, Move money, Transactions, Cards, Profile, Sign out"

@@ -17,7 +17,7 @@ Feature: Customer Login
     And I should see the sign in button
     And I should see the "Open an account" link
 
-  @US00-AC2
+  @US00-AC2 @smoke
   Scenario: User successfully logs in with valid credentials
     When I log in with valid credentials
     Then I should be logged in successfully

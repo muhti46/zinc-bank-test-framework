@@ -16,11 +16,19 @@ controller at **http://localhost:8080** and how the pipeline works.
 
 The job config mirrors the proven `zincbank-e2e` job already on the controller.
 
+> **Suite → command mapping** (see the `Run Tests & Build Reports` stage):
+> `full`/`regression` → `npm test` (all scenarios); `smoke` → `npm run
+> test:smoke` (only the `@smoke`-tagged scenarios).
+
 ## Jenkins prerequisites
 
 1. **Plugins** (already installed): Pipeline (`workflow-aggregator`), Git,
    Credentials, Plain Credentials, NodeJS, Timestamper, Build Discarder,
    **Allure Jenkins Plugin** (`allure-jenkins-plugin`), HTML Publisher.
+   For the daily e-mail you additionally need the **Email Extension**
+   (`email-ext`) plugin — Manage Jenkins → Plugins → Available → search
+   *Email Extension* → Install. (If you skip it, the pipeline falls back to the
+   bundled `mail` step, but without the HTML body / Cucumber report attachment.)
 2. **Global Tools**:
    - NodeJS installation named **`NodeJS`** (Manage Jenkins → Tools → NodeJS
      installations).
@@ -57,11 +65,15 @@ The job config mirrors the proven `zincbank-e2e` job already on the controller.
 `Checkout` → `Setup Node` (also verifies `java` is available) →
 `Install Dependencies` (`npm ci`) →
 `Install Playwright Browsers` (`npx playwright install chromium`) →
-`Typecheck` → `Run Tests & Build Reports` (`npm test` — the driver
-`src/utils/runTestWithReports.ts` runs the suite and also builds both reports
-on the agent; the explicit `npm run report:generate` +
-`npm run report:allure:generate` steps after it are idempotent. The exit code
-is preserved so a failing suite still ships its reports).
+`Typecheck` → `Run Tests & Build Reports`. That stage picks the command from the
+build cause / parameter: the **scheduled 08:00 build always runs `smoke`**
+(`npm run test:smoke`, the `@smoke`-tagged scenarios), while manual and
+SCM-poll builds run the chosen `TEST_SUITE` (`full`/`regression` = `npm test`,
+`smoke` = `npm run test:smoke`). The driver `src/utils/runTestWithReports.ts`
+runs the suite and also builds both reports on the agent; the explicit
+`npm run report:generate` + `npm run report:allure:generate` steps after it are
+idempotent. The exit code is preserved so a failing suite still ships its
+reports).
 
 After the stages finish, `post { always }` archives everything and — on this
 local controller — triggers the interactive scheduled task
@@ -84,10 +96,47 @@ workspace `allure-report/` produced by `npm run report:allure:generate`
 
 ## Triggers
 
-- **Manual**: open the job → *Build with Parameters*.
-- **Nightly**: `cron('0 8 * * 1-6')` (Mo–Sa, 08:00).
+- **Manual**: open the job → *Build with Parameters* (pick `full`/`smoke`/`regression`).
+- **Weekday smoke**: `cron('0 8 * * 1-5')` — **Mon–Fri at 08:00** — runs the
+  `@smoke` suite and e-mails the report (see next section).
 - **On push**: `pollSCM('H/5 * * * *')` — the controller listens on `localhost`,
-  so GitHub webhooks cannot reach it; polling is used instead.
+  so GitHub webhooks cannot reach it; polling is used instead. Push builds run
+  the full suite.
+
+## Daily smoke report e-mail (Mon–Fri 08:00)
+
+The scheduled 08:00 build always runs the **smoke suite** and, at the end of
+`post { always }`, sends **one e-mail per scheduled build** (manual / push
+builds do not send e-mail, to avoid inbox spam). The e-mail goes to the
+Jenkins **default recipients** — no address is hardcoded in the pipeline.
+
+One-time setup:
+
+1. Install the **Email Extension** plugin (see prerequisites).
+2. **Manage Jenkins → Configure System → Extended E-mail Notification**:
+   set the SMTP server, credentials (if needed), and put your address (e.g.
+   `muhterem@...`) in **Default Recipients**. Also configure the plain
+   **E-mail Notification** section with the same SMTP server (fallback path).
+3. Click **Test configuration** / send a test mail until it succeeds.
+
+What arrives at 08:00:
+
+- Subject: `[Jenkins] Smoke report <job> #<build> - SUCCESS|FAILURE`.
+- HTML body with the build URL, the result, and links to the archived Cucumber
+  HTML and the native Allure report.
+- Attachments: the self-contained `reports/cucumber-report.html` + failure
+  screenshots (`test-results/screenshots/*.png`) + the console log.
+- Sent on success **and** failure (a red smoke run still reports itself).
+
+To change who receives it, edit **Default Recipients** (global) — no pipeline
+change needed. To switch the daily run to a different time/day, change
+`cron('0 8 * * 1-5')` in the `Jenkinsfile` (Jenkins cron: minutes hours
+day-of-month month day-of-week; `1-5` = Mon–Fri).
+
+> The smoke suite is defined by the `@smoke` Cucumber tag — currently the three
+> critical-path scenarios (login with valid credentials, dashboard redirect,
+> dashboard navigation). Add the tag to any other scenario you want in the
+> daily smoke run (`npm run test:smoke` on your machine reproduces it).
 
 ## Reports auto-open on the desktop
 
