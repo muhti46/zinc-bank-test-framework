@@ -57,7 +57,13 @@ commands that pass locally):
 5. `npm run report:generate` — builds `reports/cucumber-report.html` from the JSON
 6. `npm run report:allure:generate` — builds `allure-report/index.html` from
    `allure-results/` (requires `java`, present on a Jenkins controller)
-7. Archive `reports/**` + `allure-report/**` + `test-results/**` in `post { always }`
+7. Publish the Allure report on the build page with the **Allure Jenkins
+   plugin**: `step([$class: 'AllureReportPublisher', commandline: 'allure-2.2',
+   reportBuildPolicy: 'ALWAYS', results: [[path: 'allure-results']]])` in
+   `post { always }` (wrapped in a try/catch so publishing never flips the
+   build result). Requires an Allure commandline global tool (auto-install
+   `allure-2.2` / `allure-2`).
+8. Archive `reports/**` + `allure-report/**` + `test-results/**` in `post { always }`
 
 Rules:
 

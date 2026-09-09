@@ -117,6 +117,24 @@ pipeline {
 
     post {
         always {
+            // Publish the Allure report so the build page shows the native
+            // "Allure Report" link + trend graph (uses the controller's
+            // Allure commandline tool, see jenkins/README.md). Wrapped in a
+            // try/catch: a reporting problem must never flip the build result.
+            script {
+                try {
+                    step([
+                        $class: 'AllureReportPublisher',
+                        commandline: 'allure-2.2',
+                        includeProperties: false,
+                        reportBuildPolicy: 'ALWAYS',
+                        results: [[path: 'allure-results']]
+                    ])
+                } catch (Exception e) {
+                    echo "Allure report publish skipped (see jenkins/README.md): ${e}"
+                }
+            }
+
             // Reports (Cucumber HTML/JSON + Allure HTML) + failure screenshots
             // are always archived, even when the suite fails.
             archiveArtifacts artifacts: 'reports/**', allowEmptyArchive: true

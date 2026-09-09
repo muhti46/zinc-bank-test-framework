@@ -19,9 +19,16 @@ The job config mirrors the proven `zincbank-e2e` job already on the controller.
 ## Jenkins prerequisites
 
 1. **Plugins** (already installed): Pipeline (`workflow-aggregator`), Git,
-   Credentials, Plain Credentials, NodeJS, Timestamper, Build Discarder.
-2. **Global Tool**: NodeJS installation named **`NodeJS`**
-   (Manage Jenkins → Tools → NodeJS installations).
+   Credentials, Plain Credentials, NodeJS, Timestamper, Build Discarder,
+   **Allure Jenkins Plugin** (`allure-jenkins-plugin`), HTML Publisher.
+2. **Global Tools**:
+   - NodeJS installation named **`NodeJS`** (Manage Jenkins → Tools → NodeJS
+     installations).
+   - **Allure commandline** (auto-install) named **`allure-2.2`** or
+     **`allure-2`** (Manage Jenkins → Tools → Allure commandline
+     installations). The pipeline publishes the Allure report with the native
+     **"Allure Report"** link + trend graph on the build/job page via
+     `step([$class: 'AllureReportPublisher', ...])`.
 3. **Credentials** — the framework reads env vars whose values must **never be
    committed**. Create these as **Secret text** in Manage Jenkins → Credentials:
 

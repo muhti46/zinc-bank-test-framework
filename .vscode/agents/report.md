@@ -109,6 +109,17 @@ The Jenkins pipeline (`Jenkinsfile`) and any future GitHub workflow must
 generate reports even when tests fail and archive them in
 `post { always }` / `if: always()`:
 
+- On Jenkins, the Allure report is additionally **published** on the build
+  page (native "Allure Report" link + trend graph) with the Allure Jenkins
+  plugin:
+  ```groovy
+  step([$class: 'AllureReportPublisher',
+        commandline: 'allure-2.2',
+        reportBuildPolicy: 'ALWAYS',
+        results: [[path: 'allure-results']]])
+  ```
+  wrapped in a try/catch so a publishing problem never flips the build result.
+
 - `reports/cucumber-report.json` and `reports/cucumber-report.html`
 - `allure-report/` (whole tree, entry `allure-report/index.html`)
 - `test-results/screenshots/*.png`

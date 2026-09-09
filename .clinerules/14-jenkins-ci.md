@@ -16,9 +16,11 @@ secrets, load and follow the Jenkins Agent playbook:
 📖 **`.vscode/agents/jenkins.md`**
 
 Follow its pipeline contract (`npm ci` → `playwright install chromium` →
-`typecheck` → `npm test` → `report:generate` + `report:allure:generate`),
-secrets policy (only `credentials('<id>')` references — never hardcode `.env`
-values), Windows `bat`/`nodejs` tooling rules, and artifact rules (`reports/**`,
+`typecheck` → `npm test` → `report:generate` + `report:allure:generate` →
+publish Allure on the build page via
+`step([$class: 'AllureReportPublisher', ...])`), secrets policy (only
+`credentials('<id>')` references — never hardcode `.env` values), Windows
+`bat`/`nodejs` tooling rules, and artifact rules (`reports/**`,
 `allure-report/**`, `test-results/**` archived in `post { always }`). A Jenkins
 failure whose root cause is a flaky test is a **Healer ticket** — hand off
 rather than weakening the pipeline. YAML/Groovy must stay valid; never print or
