@@ -63,7 +63,8 @@ pipeline {
         stage('Setup Node') {
             steps {
                 nodejs(nodeJSInstallationName: 'NodeJS') {
-                    bat 'node --version && npm --version'
+                    // Java is required by the Allure CLI (report generation).
+                    bat 'node --version && npm --version && java -version'
                 }
             }
         }
@@ -93,18 +94,20 @@ pipeline {
             }
         }
 
-        stage('Run Cucumber Tests') {
+        stage('Run Tests & Build Reports') {
             steps {
                 nodejs(nodeJSInstallationName: 'NodeJS') {
                     script {
                         echo "Running test suite: ${params.TEST_SUITE ?: 'full'}"
                     }
-                    // Run the tests, then ALWAYS build the HTML report, but keep
-                    // the Cucumber exit code so a failing suite stays red.
+                    // Run the tests, then ALWAYS build BOTH reports (Cucumber
+                    // HTML + Allure HTML), but keep the Cucumber exit code so a
+                    // failing suite stays red.
                     bat '''
                         call npm test
                         set TEST_EXIT=%errorlevel%
                         call npm run report:generate
+                        call npm run report:allure:generate
                         exit /b %TEST_EXIT%
                     '''
                 }
@@ -114,15 +117,17 @@ pipeline {
 
     post {
         always {
-            // HTML/JSON report + failure screenshots are always archived.
+            // Reports (Cucumber HTML/JSON + Allure HTML) + failure screenshots
+            // are always archived, even when the suite fails.
             archiveArtifacts artifacts: 'reports/**', allowEmptyArchive: true
+            archiveArtifacts artifacts: 'allure-report/**', allowEmptyArchive: true
             archiveArtifacts artifacts: 'test-results/**', allowEmptyArchive: true
         }
         success {
-            echo 'All tests passed. HTML report: reports/cucumber-report.html'
+            echo 'All tests passed. Reports: reports/cucumber-report.html and allure-report/index.html'
         }
         failure {
-            echo 'One or more tests failed - check the archived HTML report and screenshots.'
+            echo 'One or more tests failed - check the archived Cucumber/Allure reports and screenshots.'
         }
     }
 }

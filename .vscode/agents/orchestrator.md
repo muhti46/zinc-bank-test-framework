@@ -29,6 +29,7 @@ right engineer, reviews the merge request, and only then calls it closed.
 | 🎯 **Planner** | `planner.md` | Strategy & coverage | "How should we test X?", coverage gaps, new feature planning |
 | ⚡ **Generator** | `generator.md` | Writing test code | Feature files, Page Objects, step definitions, locators |
 | 🩺 **Healer** | `healer.md` | Fixing & stabilization | Flaky tests, failures, timeouts, debug |
+| 📊 **Report** | `report.md` | Reports & artifacts | Allure/Cucumber HTML/JSON reports, report scripts & config, screenshots in reports, report CI artifacts |
 | 🐙 **GitHub** | `github.md` | CI/CD & GitOps | GitHub Actions, workflows, CI failures, secrets, artifacts, repo governance |
 | 🚀 **Jenkins** | `jenkins.md` | On-prem CI/CD (Jenkins) | Jenkins pipelines & Jenkinsfiles, jobs/credentials/artifacts on http://localhost:8080 |
 
@@ -89,6 +90,15 @@ Route to **Healer** when the request is about **something FAILING/BROKEN**:
 - "The test passed before, why does it fail now?"
 - Any failure, error, screenshot, or stabilization request
 
+### 📊 → Report
+Route to **Report** when the request is about the **reports themselves**:
+- "Set up / add the Allure report (locally and in CI)"
+- "Generate, open or clean the reports"
+- "The Cucumber HTML / Allure report is empty, missing a scenario or broken"
+- "Attach screenshots / environment metadata to the reports"
+- "The CI build does not archive the reports"
+- Any file under `reports/`, `allure-results/`, `allure-report/`
+
 ### 🐙 → GitHub
 Route to **GitHub** when the request is about **running tests on GitHub / CI**:
 - "Set up CI for the tests on GitHub"
@@ -126,6 +136,7 @@ Some requests span multiple domains. Delegate in sequence:
 | **Jenkins failure / flaky in pipeline** | Jenkins (inspect job & logs) → Healer (fix flake) → Jenkins (re-verify on Jenkins) |
 | **Set up CI for the suite** | GitHub (workflow, secrets, artifacts) → Healer (if a test flakes under CI load) |
 | **Set up Jenkins CI for the suite** | Jenkins (Jenkinsfile, job, credentials) → Healer (if a test flakes under Jenkins load) |
+| **Set up / fix Allure + Cucumber reporting** | Report (project config + scripts) → Jenkins or GitHub (pipeline/artifacts) → Report (verify generated reports) |
 | **Refactor existing tests** | Planner (assess impact) → Generator (rewrite) → Healer (stabilize) |
 
 For multi-step workflows, **load one agent at a time**, complete its phase,

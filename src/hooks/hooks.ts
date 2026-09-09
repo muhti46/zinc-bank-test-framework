@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import { After, Before } from '@cucumber/cucumber';
+import { attachmentPath, ContentType } from 'allure-js-commons';
 import { chromium } from 'playwright';
 
 import { CustomWorld } from '../support/world';
@@ -53,6 +54,21 @@ After(async function (
 
       await this.page.screenshot({ path: screenshotPath, fullPage: true });
       console.log(`Screenshot saved: ${screenshotPath}`);
+
+      // Attach the same screenshot to the Allure report so every failure also
+      // carries visual evidence inside allure-report/.
+      // Wrapped in its own try/catch: an Allure problem must never mask the
+      // real test result.
+      try {
+        await attachmentPath('Failure screenshot', screenshotPath, {
+          contentType: ContentType.PNG,
+          fileExtension: 'png'
+        });
+      } catch (allureError) {
+        console.error(
+          `Could not attach screenshot to Allure: ${(allureError as Error).message}`
+        );
+      }
     }
   } finally {
     // Always close the browser, even when taking the screenshot failed.

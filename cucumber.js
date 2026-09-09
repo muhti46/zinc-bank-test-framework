@@ -1,9 +1,10 @@
 // Cucumber configuration file.
 // Read by `cucumber-js` when you run `npm test`.
 const fs = require('fs');
+const os = require('os');
 
 // Make sure the output folders exist before the test run starts.
-['reports', 'test-results/screenshots'].forEach((dir) => {
+['reports', 'allure-results', 'test-results/screenshots'].forEach((dir) => {
   fs.mkdirSync(dir, { recursive: true });
 });
 
@@ -20,8 +21,19 @@ module.exports = {
     paths: ['features/'],
     format: [
       'progress',
+      // Allure reporter - writes raw results into allure-results/ during the run.
+      'allure-cucumberjs/reporter',
       'json:reports/cucumber-report.json'
     ],
+    formatOptions: {
+      // Allure raw results location (see the Report agent playbook).
+      resultsDir: 'allure-results',
+      environmentInfo: {
+        os_platform: os.platform(),
+        os_release: os.release(),
+        node_version: process.version
+      }
+    },
     publish: false
   }
 };

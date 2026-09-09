@@ -9,6 +9,7 @@ applications, built with:
 - **Page Object Model (POM)** – page locators live in dedicated page classes
 - **dotenv** – environment variables and credentials are stored outside the code
 - **cucumber-html-reporter** – readable HTML reports
+- **Allure** – rich interactive HTML reports with step history and failure screenshots
 
 > This version ships with the **ZincBank** demo application
 > (https://zincbank.cydeo.io) - a simulated bank built for testing education -
@@ -78,25 +79,33 @@ npx playwright install chromium
 
 ## 4. Run the tests
 
-| Command                    | What it does                                                        |
-| -------------------------- | ------------------------------------------------------------------- |
-| `npm test`                 | Runs all scenarios and writes `reports/cucumber-report.json`        |
-| `npm run test:html`        | Runs the tests AND builds `reports/cucumber-report.html`            |
-| `npm run report:generate`  | Builds the HTML report from the last JSON report (no test run)      |
-| `npm run report:open`      | Opens the HTML report in your browser (Windows)                     |
-| `npm run report:clean`     | Deletes `reports/` and `test-results/`                              |
+| Command                           | What it does                                                          |
+| --------------------------------- | --------------------------------------------------------------------- |
+| `npm test`                        | Runs all scenarios; writes `reports/cucumber-report.json` and raw Allure data into `allure-results/` |
+| `npm run test:html`               | Runs the tests AND builds the Cucumber HTML report                    |
+| `npm run test:reports`            | Runs the tests AND builds **both** reports (Cucumber HTML + Allure HTML) |
+| `npm run report:generate`         | Builds the Cucumber HTML report from the last JSON report (no test run) |
+| `npm run report:allure:generate`  | Builds the Allure HTML report from `allure-results/` (no test run)    |
+| `npm run report:all`              | Builds **both** reports from the last test run (no test run)          |
+| `npm run report:open`             | Opens the Cucumber HTML report in your browser (Windows)              |
+| `npm run report:open:allure`      | Opens the Allure HTML report in your browser (Windows)                |
+| `npm run report:clean`            | Deletes `reports/`, `allure-results/`, `allure-report/` and `test-results/` |
 
 > On macOS / Linux open the report with `open reports/cucumber-report.html`.
 
 ### Where are the results?
 
-| Artifact                        | Location                         |
-| ------------------------------- | -------------------------------- |
-| JSON report (machine readable)  | `reports/cucumber-report.json`   |
-| HTML report (human readable)    | `reports/cucumber-report.html`   |
-| Screenshots of failed scenarios | `test-results/screenshots/*.png` |
+| Artifact                        | Location                           |
+| ------------------------------- | ---------------------------------- |
+| JSON report (machine readable)  | `reports/cucumber-report.json`     |
+| HTML report (human readable)    | `reports/cucumber-report.html`     |
+| Allure raw results (per run)    | `allure-results/`                  |
+| Allure HTML report              | `allure-report/index.html`         |
+| Screenshots of failed scenarios | `test-results/screenshots/*.png`   |
 
-A screenshot is taken automatically **only when a scenario fails**.
+A screenshot is taken automatically **only when a scenario fails** — it is
+saved as a PNG under `test-results/screenshots/` **and** attached to the
+scenario inside the Allure report.
 
 ---
 
@@ -119,7 +128,9 @@ playwright-cucumber-framework/
 │   └── utils/
 │       └── reportGenerator.ts     # Converts the JSON report into HTML
 │
-├── reports/                       # Generated reports (JSON + HTML)
+├── reports/                       # Cucumber reports (JSON + HTML)
+├── allure-results/                # Raw Allure data from each test run
+├── allure-report/                 # Generated Allure HTML report
 ├── test-results/
 │   └── screenshots/               # Screenshots of failed scenarios
 │
@@ -182,10 +193,19 @@ Cucumber lifecycle events:
 
 This guarantees that scenarios never share state (cookies, local storage, ...).
 
-### Reporting (`src/utils/reportGenerator.ts`)
-Cucumber writes `reports/cucumber-report.json` during the run.
-`reportGenerator.ts` reads that JSON and creates a styled HTML report via
-`cucumber-html-reporter`.
+### Reporting (`src/utils/reportGenerator.ts` + Allure)
+Two reporting layers run on every test run:
+
+- **Cucumber** — Cucumber writes `reports/cucumber-report.json` during the run
+  and `src/utils/reportGenerator.ts` turns it into a styled HTML report via
+  `cucumber-html-reporter`.
+- **Allure** — the `allure-cucumberjs` reporter (declared in `cucumber.js`)
+  writes raw data into `allure-results/` during the run; the Allure CLI then
+  builds `allure-report/index.html`. Failure screenshots are attached to the
+  Allure report automatically from `src/hooks/hooks.ts`.
+
+Build both reports with `npm run test:reports`. All reporting conventions live
+in the **📊 Report agent** playbook (`.vscode/agents/report.md`).
 
 ### Adding a new scenario
 1. Add the scenario to a `.feature` file using Gherkin.
@@ -390,6 +410,7 @@ CI.
 | 🎯 **Planner** | `.vscode/agents/planner.md` | Test strategy & coverage planning |
 | ⚡ **Generator** | `.vscode/agents/generator.md` | Test code & feature generation |
 | 🩺 **Healer** | `.vscode/agents/healer.md` | Flaky test healing & stabilization |
+| 📊 **Report** | `.vscode/agents/report.md` | All reports & artifacts (Cucumber HTML/JSON, Allure, screenshots, report scripts & CI artifact publishing) |
 | 🐙 **GitHub** | `.vscode/agents/github.md` | CI/CD & GitOps (Actions, secrets, artifacts, repo governance) |
 | 🚀 **Jenkins** | `.vscode/agents/jenkins.md` | On-prem CI/CD (Jenkins controller at http://localhost:8080, pipelines, jobs, credentials) |
 
@@ -404,7 +425,8 @@ The magic is in `.clinerules/` — Cline's auto-loaded rules directory:
 ├── 11-generator-source.md       # Auto-activates when working on src/** test code
 ├── 12-healer-results.md         # Auto-activates when inspecting test-results/**
 ├── 13-github-ci.md              # Auto-activates when working on CI / .github/**
-└── 14-jenkins-ci.md             # Auto-activates on Jenkinsfile / jenkins/**
+├── 14-jenkins-ci.md             # Auto-activates on Jenkinsfile / jenkins/**
+└── 15-report-reports.md         # Auto-activates on reports/**, allure-*/**
 ```
 
 1. **Every Cline session** loads `01-orchestrator-routing.md` automatically.
@@ -412,7 +434,7 @@ The magic is in `.clinerules/` — Cline's auto-loaded rules directory:
    writing code vs. fixing a failure).
 3. It **loads the matching agent's playbook** from `.vscode/agents/` and
    executes the task as that agent (templates, conventions, verification).
-4. Context rules (10/11/12/13/14) additionally auto-activate an expert whenever
+4. Context rules (10/11/12/13/14/15) additionally auto-activate an expert whenever
    you touch the relevant files — no prompt needed.
 
 > **Note:** the agents are **markdown playbooks** consumed by Cline — they are
@@ -438,10 +460,11 @@ No other wiring is required — the Orchestrator picks it up next session.
 | Task | Purpose |
 |------|---------|
 | `test` | Run the full Cucumber suite |
-| `test:html (with report)` | Run tests + generate HTML report |
+| `test:html (with report)` | Run tests + generate the Cucumber HTML report |
+| `test:reports (cucumber + allure)` | Run tests + generate **both** reports (Cucumber HTML + Allure) |
 | `typecheck` | TypeScript compile check |
 | `stability: 10x flakiness proof` | Healer's 10-run stability loop |
-| `clean reports` | Remove `reports/` and `test-results/` |
+| `clean reports` | Remove `reports/`, `allure-results/`, `allure-report/` and `test-results/` |
 
 ---
 
@@ -452,9 +475,11 @@ The repository is wired as a **Pipeline-from-SCM** job (`zincbank-test-framework
 that reads the `Jenkinsfile` in the repo root.
 
 - **Pipeline stages:** `npm ci` → `npx playwright install chromium` →
-  `npm run typecheck` → `npm test` (+ `npm run report:generate`).
+  `npm run typecheck` → `npm test` (+ `npm run report:generate` +
+  `npm run report:allure:generate`).
 - **Artifacts archived on every build:** `reports/cucumber-report.html`,
-  `reports/cucumber-report.json`, `test-results/screenshots/*.png`.
+  `reports/cucumber-report.json`, `allure-report/index.html`,
+  `test-results/screenshots/*.png`.
 - **Triggers:** manual *Build with Parameters*, nightly cron (`Mo–Sa 08:00`),
   and SCM polling (webhooks cannot reach a `localhost` controller).
 - **Secrets:** the framework's env values are stored as Jenkins credentials and

@@ -33,17 +33,24 @@ The job config mirrors the proven `zincbank-e2e` job already on the controller.
    | `zincbank-app-invalid-password` | `APP_INVALID_PASSWORD` | value in your local `.env` |
    | `zincbank-app-error-text` | `EXPECTED_ERROR_TEXT` | value in your local `.env` |
 
+> **Java:** the Allure command line (`allure generate`) requires Java. A Jenkins
+> controller ships a JRE, so this is usually already satisfied — the pipeline
+> verifies it (`java -version`) in the `Setup Node` stage.
+
 ## Pipeline stages
 
-`Checkout` → `Setup Node` → `Install Dependencies` (`npm ci`) →
+`Checkout` → `Setup Node` (also verifies `java` is available) →
+`Install Dependencies` (`npm ci`) →
 `Install Playwright Browsers` (`npx playwright install chromium`) →
-`Typecheck` → `Run Cucumber Tests` (`npm test` + `npm run report:generate`,
-preserving the exit code).
+`Typecheck` → `Run Tests & Build Reports` (`npm test` +
+`npm run report:generate` + `npm run report:allure:generate`, preserving the
+exit code so a failing suite still ships its reports).
 
 Artifacts archived on **every** build (even failures):
 
 - `reports/cucumber-report.html` — human-readable HTML report
 - `reports/cucumber-report.json` — machine-readable JSON report
+- `allure-report/index.html` — Allure HTML report (raw data in `allure-results/`)
 - `test-results/screenshots/*.png` — failure screenshots
 
 ## Triggers
@@ -60,7 +67,7 @@ Artifacts archived on **every** build (even failures):
 npm ci
 npx playwright install chromium
 npm run typecheck
-npm run test:html
+npm run test:reports   # runs the tests, then builds Cucumber HTML + Allure HTML
 ```
 
 If a test flakes only inside Jenkins, that is a **Healer ticket** — do not mask

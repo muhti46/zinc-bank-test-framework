@@ -17,6 +17,11 @@ test-results/*
 test-results/screenshots/*
 !test-results/screenshots/.gitkeep
 
+# Allure report data (keep the raw-results folder, ignore its content)
+allure-results/*
+!allure-results/.gitkeep
+allure-report/
+
 # Logs and OS files
 *.log
 .DS_Store

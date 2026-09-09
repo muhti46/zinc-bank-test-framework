@@ -23,7 +23,8 @@ the **on-prem Jenkins controller** the repo is connected to:
 
 It makes the suite run automatically — on a schedule, after code is pushed
 (polling; webhooks cannot reach `localhost` from GitHub), or on demand — and
-ships the HTML report and failure screenshots as build artifacts.
+ships the Cucumber HTML report, the Allure report and failure screenshots as
+build artifacts.
 
 ### What This Agent Handles
 
@@ -31,7 +32,7 @@ ships the HTML report and failure screenshots as build artifacts.
 - Jenkins job configuration (pipeline-from-SCM XML) and job lifecycle
 - Jenkins credentials for test secrets (Secret text / Username+password)
 - Triggers: `cron`, `pollSCM`, manual builds
-- Artifact archiving of `reports/**` and `test-results/**`
+- Artifact archiving of `reports/**`, `allure-report/**` and `test-results/**`
 - Jenkins REST API calls (crumb + basic auth, create job, build, logs)
 
 ### What This Agent Does NOT Do
@@ -51,9 +52,12 @@ commands that pass locally):
 1. `npm ci` — lockfile exists; never `npm install`
 2. `npx playwright install chromium` — Chromium only, no `--with-deps` on Windows
 3. `npm run typecheck` — TS gate *before* running tests
-4. `npm test` — Cucumber; writes `reports/cucumber-report.json`
+4. `npm test` — Cucumber; writes `reports/cucumber-report.json` and raw Allure
+   data into `allure-results/`
 5. `npm run report:generate` — builds `reports/cucumber-report.html` from the JSON
-6. Archive `reports/**` + `test-results/**` in `post { always }`
+6. `npm run report:allure:generate` — builds `allure-report/index.html` from
+   `allure-results/` (requires `java`, present on a Jenkins controller)
+7. Archive `reports/**` + `allure-report/**` + `test-results/**` in `post { always }`
 
 Rules:
 
@@ -61,12 +65,18 @@ Rules:
 - Wrap every Node command in `nodejs(nodeJSInstallationName: 'NodeJS') { ... }`
   so builds use the Jenkins-managed Node, not a machine default.
 - Never call `report:open` (a `start` command) in CI — reports are archived, not opened.
+- Allure's CLI is Java-based → `java` must resolve inside the `bat` steps. A
+  Jenkins controller runs on Java, so it is normally on the PATH; if a build
+  ever fails with `allure: command not found` / "requires Java", prepend the JRE
+  directory to `PATH` in the pipeline `environment` block (never hardcode
+  secrets there).
 - A failing Cucumber run must keep the build **red**; still generate + archive the
   HTML report for debugging. On Windows `cmd` use the exit-code-preserving pattern:
   ```bat
   call npm test
   set TEST_EXIT=%errorlevel%
   call npm run report:generate
+  call npm run report:allure:generate
   exit /b %TEST_EXIT%
   ```
 
@@ -135,10 +145,11 @@ Credentials and job XML follow the existing `zincbank-e2e` job pattern (see
 ## Verification Protocol (Before Declaring Done)
 
 1. The exact pipeline commands pass **locally** in order:
-   `npm ci && npx playwright install chromium && npm run typecheck && npm run test:html`
+   `npm ci && npx playwright install chromium && npm run typecheck && npm run test:reports`
 2. Every `credentials('<id>')` referenced exists in the Jenkins store.
 3. Artifact globs match real outputs: `reports/cucumber-report.json`,
-   `reports/cucumber-report.html`, `test-results/screenshots/*.png`.
+   `reports/cucumber-report.html`, `allure-report/index.html`,
+   `test-results/screenshots/*.png`.
 4. Job XML is valid: pipeline-from-SCM, `scriptPath=Jenkinsfile`, branch `*/main`.
 5. A real Jenkins build is **green** and the reports are archived on the build.
 
@@ -151,7 +162,7 @@ Credentials and job XML follow the existing `zincbank-e2e` job pattern (see
 ✅ **"Tests pass locally but fail on Jenkins — why?"**
 ✅ **"Add a nightly / scheduled Jenkins run."**
 ✅ **"Wire test credentials into Jenkins without committing secrets."**
-✅ **"Publish the HTML report / screenshots from Jenkins builds."**
+✅ **"Publish the Cucumber HTML / Allure reports and screenshots from Jenkins builds."**
 
 If the root cause turns out to be a **flaky test**, stop and hand off to the
 **Healer** — the pipeline is my job, the flake is theirs.

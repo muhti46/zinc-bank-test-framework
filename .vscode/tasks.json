@@ -19,6 +19,13 @@
       "problemMatcher": []
     },
     {
+      "label": "test:reports (cucumber + allure)",
+      "type": "shell",
+      "command": "npm run test:reports",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
       "label": "typecheck",
       "type": "shell",
       "command": "npm run typecheck",

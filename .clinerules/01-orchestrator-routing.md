@@ -17,12 +17,14 @@ playbooks live in `.vscode/agents/`.
 | Test strategy, coverage, "what/why to test", scenario gaps, risk prioritization, planning | 🎯 **Planner** | `.vscode/agents/planner.md` |
 | Writing/refactoring feature files, Page Objects, step definitions, locators, test data wiring, "write/implement/create a test" | ⚡ **Generator** | `.vscode/agents/generator.md` |
 | Flaky/failing/intermittent tests, timeouts, race conditions, debugging failures, stabilization, screenshots forensics | 🩺 **Healer** | `.vscode/agents/healer.md` |
+| Reports: Allure / Cucumber HTML & JSON setup, report scripts & config, report CI artifacts, "add/set up the Allure report", broken/empty reports | 📊 **Report** | `.vscode/agents/report.md` |
 | GitHub Actions, workflows, CI/CD setup, pipeline failures ("works locally, red on GitHub"), secrets/env in CI, artifacts & report publishing, branch protection, `.github/` governance | 🐙 **GitHub** | `.vscode/agents/github.md` |
 | Jenkins, Jenkinsfile, on-prem CI pipelines on http://localhost:8080, Jenkins jobs/credentials/artifacts/triggers, "works locally, red on Jenkins" | 🚀 **Jenkins** | `.vscode/agents/jenkins.md` |
 | The agent system itself, adding a new agent, multi-domain requests, process questions | 🧭 **Orchestrator** | `.vscode/agents/orchestrator.md` |
 
 If the request spans several domains, orchestrate the workflow sequence
-(Planner → Generator → Healer, or GitHub → Healer for CI flakes) and load
+(Planner → Generator → Healer, GitHub → Healer for CI flakes, or
+Report → Jenkins for report pipelines) and load
 **one agent at a time**.
 
 ## Step 2 — Load the playbook
