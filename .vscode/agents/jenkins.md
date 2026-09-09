@@ -58,12 +58,12 @@ commands that pass locally):
 6. `npm run report:allure:generate` — builds `allure-report/index.html` from
    `allure-results/` (requires `java`, present on a Jenkins controller)
 7. Publish the Allure report on the build page with the **Allure Jenkins
-   plugin**: `step([$class: 'AllureReportPublisher', reportBuildPolicy:
-   'ALWAYS', results: [[path: 'allure-results']]])` in `post { always }`
-   (wrapped in a try/catch so publishing never flips the build result).
-   Requires an **Allure 3** global tool named `allure3`. Plugin **3.x** uses
-   the Allure 3 installation automatically when `commandline` is NOT set
-   (`commandline` is an Allure 2-only option in 3.x).
+   plugin**: `step([$class: 'AllureReportPublisher', allureVersion: '3',
+   reportBuildPolicy: 'ALWAYS', results: [[path: 'allure-results']]])` in
+   `post { always }` (wrapped in a try/catch so publishing never flips the
+   build result). Requires an **Allure 3** global tool named `allure3`.
+   Plugin **3.x**: `allureVersion: '3'` routes to the Allure 3 installation;
+   the default `"2"` instead requires an (Allure 2) commandline tool.
 8. Archive `reports/**` + `allure-report/**` + `test-results/**` in `post { always }`
 
 Rules:
