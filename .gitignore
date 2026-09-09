@@ -26,3 +26,6 @@ allure-report/
 *.log
 .DS_Store
 Thumbs.db
+
+# Temporary exploration/probe scripts (developer work-in-progress)
+.scratch/
