@@ -83,22 +83,29 @@ function run(cmd: string, args: string[]): number {
 // (allure-report/) but NOT the INPUT (allure-results/) - leftover files from
 // earlier runs keep showing up in every new report (old/renamed scenarios,
 // broken records from previous sessions, etc.). Same for the cucumber JSON.
+// Failure screenshots get the same treatment: hooks.ts only creates PNGs for
+// FAILED scenarios, but a `test-results/screenshots/` folder that is never
+// wiped (gitignored, so `git checkout` on CI leaves it untouched) accumulates
+// screenshots from older builds - which Jenkins then archives and attaches to
+// the e-mail even when today's run was 100% green.
 // IMPORTANT: `.gitkeep` files are repo-governed (the Report agent requires
 // .gitkeep-only commits) - purge the folder CONTENTS, never the folder itself.
 function cleanRawResults(): void {
   const KEEP = new Set(['.gitkeep']);
-  if (existsSync('allure-results')) {
-    for (const entry of readdirSync('allure-results')) {
-      if (KEEP.has(entry)) continue;
-      rmSync(`allure-results/${entry}`, {
-        recursive: true,
-        force: true
-      });
+  for (const dir of ['allure-results', 'test-results/screenshots']) {
+    if (existsSync(dir)) {
+      for (const entry of readdirSync(dir)) {
+        if (KEEP.has(entry)) continue;
+        rmSync(`${dir}/${entry}`, {
+          recursive: true,
+          force: true
+        });
+      }
     }
   }
   // Single-file cucumber JSON (gitignored; overwritten every run anyway).
   rmSync('reports/cucumber-report.json', { force: true });
-  console.log('[test] Cleared stale raw results (allure-results/, reports/cucumber-report.json).');
+  console.log('[test] Cleared stale raw results (allure-results/, test-results/screenshots/, reports/cucumber-report.json).');
 }
 
 // 0) Wipe stale raw results first - otherwise every report mixes in
