@@ -34,6 +34,9 @@ pipeline {
         // build always runs the morning smoke suite (hour < 12 -> smoke) and
         // post{} e-mails the report to the configured default recipients.
         cron('0 8 * * 1-5')
+        // Weekday 17:00 (controller local time) regression run - the hour-based
+        // suite mapping picks regression after noon, and post{} e-mails the report.
+        cron('0 17 * * 1-5')
         // SCM polling: check for pushed changes every 5 minutes and run the full suite.
         pollSCM('H/5 * * * *')
     }

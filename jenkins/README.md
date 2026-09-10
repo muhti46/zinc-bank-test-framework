@@ -103,21 +103,23 @@ workspace `allure-report/` produced by `npm run report:allure:generate`
 - **On push**: `pollSCM('H/5 * * * *')` — the controller listens on `localhost`,
   so GitHub webhooks cannot reach it; polling is used instead. Push builds run
   the full suite.
-- **Scheduled**: `cron('0 8 * * 1-5')` — weekday 08:00 smoke run + e-mail (below).
+- **Scheduled**: `cron('0 8 * * 1-5')` + `cron('0 17 * * 1-5')` — weekday 08:00 smoke + 17:00 regression, both e-mailed (below).
 
 ### Scheduled weekday builds (smoke & regression)
 
-The `Jenkinsfile` runs a **weekday 08:00 smoke build** via
-`cron('0 8 * * 1-5')` (controller local time) plus manual + SCM-poll triggers.
-The scheduled build is detected by cause and always runs the **morning smoke
-suite** (hour < 12 → smoke), then `post { always }` e-mails the report to the
-default recipients. See "Daily report e-mail" below.
+The `Jenkinsfile` runs **two scheduled weekday builds** via the `triggers {}`
+block (controller local time) plus manual + SCM-poll triggers:
+
+- `cron('0 8 * * 1-5')` — **08:00 smoke** (hour < 12 → smoke)
+- `cron('0 17 * * 1-5')` — **17:00 regression** (hour ≥ 12 → regression)
+
+Both are detected by cause (`TimerTrigger$TimerTriggerCause`), run their fixed
+suite (the hour-based mapping in the **"Run Tests & Build Reports"** stage),
+and `post { always }` e-mails the report to the default recipients. See
+"Daily report e-mail" below.
 
 > The scheduled runs are defined **inline in the `Jenkinsfile`** (Option B
-> below), so no separate jobs are required. If you later want a separate
-> **17:00 regression** run too, either add `cron('0 17 * * 1-5')` to the same
-> `triggers {}` block (the hour-based suite mapping already picks regression
-> after noon) or create a dedicated job per Option A.
+> below), so no separate jobs are required.
 
 **Option A: create a separate job** (alternative, keeps jobs clean)
 - `zincbank-test-framework-smoke` — same Jenkinsfile, add `cron('0 8 * * 1-5')`
@@ -129,6 +131,7 @@ default recipients. See "Daily report e-mail" below.
 ```groovy
 triggers {
     cron('0 8 * * 1-5')    // Mon–Fri 08:00: smoke + e-mail
+    cron('0 17 * * 1-5')   // Mon–Fri 17:00: regression + e-mail
     pollSCM('H/5 * * * *') // SCM polling
 }
 ```
@@ -139,7 +142,7 @@ regression after noon; otherwise the `TEST_SUITE` parameter. The same
 `isScheduled` check gates the `post {}` e-mail, so only scheduled builds send
 mail (manual / push builds stay quiet).
 
-## Daily report e-mail (optional for scheduled jobs)
+## Daily report e-mail (for scheduled jobs)
 
 If you add scheduled weekday builds (smoke at 08:00 and regression at 17:00 via
 separate Jenkins jobs or dual-trigger setup), the pipeline's `post { always }`
