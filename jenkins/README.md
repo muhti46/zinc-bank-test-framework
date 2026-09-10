@@ -67,10 +67,11 @@ The job config mirrors the proven `zincbank-e2e` job already on the controller.
 `Install Dependencies` (`npm ci`) →
 `Install Playwright Browsers` (`npx playwright install chromium`) →
 `Typecheck` → `Run Tests & Build Reports`. That stage picks the command from the
-build cause / parameter: the **scheduled weekday builds always run their fixed
-suite** — 08:00 → `smoke` (`npm run test:smoke`, the `@smoke`-tagged scenarios)
-and 17:00 → `regression` (`npm run test:regression`, the `@regression`-tagged
-scenarios) — while manual and SCM-poll builds run the chosen `TEST_SUITE`
+build cause / parameter: the **scheduled daily 08:00 build always runs its
+fixed suite chosen by day** — weekdays (Mon–Fri) → `smoke`
+(`npm run test:smoke`, the `@smoke`-tagged scenarios), weekends (Sat–Sun) →
+`regression` (`npm run test:regression`, the `@regression`-tagged scenarios) —
+while manual and SCM-poll builds run the chosen `TEST_SUITE`
 (`full` = `npm test`, `smoke` = `npm run test:smoke`, `regression` =
 `npm run test:regression`). The driver `src/utils/runTestWithReports.ts`
 runs the suite and also builds both reports on the agent; the explicit
@@ -103,52 +104,52 @@ workspace `allure-report/` produced by `npm run report:allure:generate`
 - **On push**: `pollSCM('H/5 * * * *')` — the controller listens on `localhost`,
   so GitHub webhooks cannot reach it; polling is used instead. Push builds run
   the full suite.
-- **Scheduled**: `cron('0 8 * * 1-5')` + `cron('0 17 * * 1-5')` — weekday 08:00 smoke + 17:00 regression, both e-mailed (below).
+- **Scheduled**: `cron('0 8 * * *')` — daily 08:00 build; suite by day: weekday smoke, weekend regression, both e-mailed (below).
 
-### Scheduled weekday builds (smoke & regression)
+### Scheduled daily builds (weekday smoke / weekend regression)
 
-The `Jenkinsfile` runs **two scheduled weekday builds** via the `triggers {}`
+The `Jenkinsfile` runs **one scheduled daily build** via the `triggers {}`
 block (controller local time) plus manual + SCM-poll triggers:
 
-- `cron('0 8 * * 1-5')` — **08:00 smoke** (hour < 12 → smoke)
-- `cron('0 17 * * 1-5')` — **17:00 regression** (hour ≥ 12 → regression)
+- `cron('0 8 * * *')` — **every day 08:00**; the day-of-week mapping in the
+  **"Run Tests & Build Reports"** stage picks the suite:
+  - Mon–Fri (`getDay()` 1–5) → **smoke**
+  - Sat–Sun (`getDay()` 0 or 6) → **regression**
 
-Both are detected by cause (`TimerTrigger$TimerTriggerCause`), run their fixed
-suite (the hour-based mapping in the **"Run Tests & Build Reports"** stage),
-and `post { always }` e-mails the report to the default recipients. See
-"Daily report e-mail" below.
+The scheduled build is detected by cause (`TimerTrigger$TimerTriggerCause`),
+runs its fixed suite, and `post { always }` e-mails the report to the default
+recipients. See "Daily report e-mail" below.
 
-> The scheduled runs are defined **inline in the `Jenkinsfile`** (Option B
-> below), so no separate jobs are required.
+> Declarative pipelines allow only **one** `cron()` per `triggers {}` block —
+> adding a second `cron()` fails with `Duplicate trigger name: "cron"`. Use a
+> single daily cron + day-based suite logic (as above), or split into separate
+> jobs (Option A).
 
 **Option A: create a separate job** (alternative, keeps jobs clean)
-- `zincbank-test-framework-smoke` — same Jenkinsfile, add `cron('0 8 * * 1-5')`
+- `zincbank-test-framework-smoke` — same Jenkinsfile, `cron('0 8 * * 1-5')`
   + force `TEST_SUITE=smoke`
-- `zincbank-test-framework-regression` — same Jenkinsfile, add `cron('0 17 * * 1-5')`
+- `zincbank-test-framework-regression` — same Jenkinsfile, `cron('0 8 * * 6-7')`
   + force `TEST_SUITE=regression`
 
 **Option B: triggers inline in this job** (what the Jenkinsfile currently does)
 ```groovy
 triggers {
-    cron('0 8 * * 1-5')    // Mon–Fri 08:00: smoke + e-mail
-    cron('0 17 * * 1-5')   // Mon–Fri 17:00: regression + e-mail
+    cron('0 8 * * *')      // every day 08:00: weekday smoke / weekend regression
     pollSCM('H/5 * * * *') // SCM polling
 }
 ```
 
 The **"Run Tests & Build Reports"** stage maps the build cause to a suite:
-`isScheduled` (a `TimerTrigger$TimerTriggerCause` build) → smoke before noon /
-regression after noon; otherwise the `TEST_SUITE` parameter. The same
+`isScheduled` (a `TimerTrigger$TimerTriggerCause` build) → weekday smoke /
+weekend regression; otherwise the `TEST_SUITE` parameter. The same
 `isScheduled` check gates the `post {}` e-mail, so only scheduled builds send
 mail (manual / push builds stay quiet).
 
 ## Daily report e-mail (for scheduled jobs)
 
-If you add scheduled weekday builds (smoke at 08:00 and regression at 17:00 via
-separate Jenkins jobs or dual-trigger setup), the pipeline's `post { always }`
-detects this via `BUILD_CAUSE` and sends **one e-mail per scheduled build** to
-the Jenkins **default recipients** (manual / push builds do not send e-mail, to
-avoid inbox spam).
+The pipeline's `post { always }` detects the scheduled build via `BUILD_CAUSE`
+and sends **one e-mail per scheduled build** to the Jenkins **default
+recipients** (manual / push builds do not send e-mail, to avoid inbox spam).
 
 One-time setup:
 
@@ -161,8 +162,7 @@ One-time setup:
 
 What arrives:
 
-- Subject: `[Jenkins] Smoke report <job> #<build> - SUCCESS|FAILURE` (08:00)
-  or `[Jenkins] Regression report <job> #<build> - SUCCESS|FAILURE` (17:00).
+- Subject: `[Jenkins] Smoke report <job> #<build> - SUCCESS|FAILURE` (weekday)  or `[Jenkins] Regression report <job> #<build> - SUCCESS|FAILURE` (weekend).
 - HTML body with the build URL, the result, and links to the archived Cucumber
   HTML and the native Allure report.
 - Attachments: the self-contained `reports/cucumber-report.html` + failure
@@ -171,8 +171,9 @@ What arrives:
 
 To change who receives it, edit **Default Recipients** (global) — no pipeline
 change needed. To switch the daily runs to different times/days, change the
-`cron('0 8 * * 1-5')` / `cron('0 17 * * 1-5')` lines in the `Jenkinsfile`
-(Jenkins cron: minutes hours day-of-month month day-of-week; `1-5` = Mon–Fri).
+`cron('0 8 * * *')` line in the `Jenkinsfile` and/or the day-based suite
+mapping (Jenkins cron: minutes hours day-of-month month day-of-week; `1-5` =
+Mon–Fri, `6-7` = Sat–Sun).
 
 > The smoke suite is defined by the `@smoke` Cucumber tag — currently the three
 > critical-path scenarios (login with valid credentials, dashboard redirect,

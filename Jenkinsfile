@@ -16,8 +16,9 @@
 //   - Manual: "Build with Parameters" (choose TEST_SUITE: full, smoke, or regression)
 //   - SCM polling every 5 min picks up pushed changes (localhost controller
 //     cannot receive GitHub webhooks) and runs the full suite.
-//   - Scheduled runs: Optional. For weekday smoke (08:00) and regression (17:00)
-//     builds, create separate Jenkins jobs or add cron triggers (see jenkins/README.md).
+//   - Scheduled: daily 08:00 cron, suite chosen by day - weekday smoke,
+//     weekend regression (see triggers{} and the "Run Tests & Build Reports"
+//     stage). Only scheduled builds e-mail the report (see post{}).
 
 pipeline {
     agent any
@@ -30,13 +31,14 @@ pipeline {
     }
 
     triggers {
-        // Weekday 08:00 (controller local time) smoke run - the scheduled
-        // build always runs the morning smoke suite (hour < 12 -> smoke) and
-        // post{} e-mails the report to the configured default recipients.
-        cron('0 8 * * 1-5')
-        // Weekday 17:00 (controller local time) regression run - the hour-based
-        // suite mapping picks regression after noon, and post{} e-mails the report.
-        cron('0 17 * * 1-5')
+        // Daily 08:00 (controller local time) scheduled run. The suite is
+        // chosen by DAY in the "Run Tests & Build Reports" stage: weekdays
+        // (Mon-Fri) run smoke, weekends (Sat-Sun) run regression. post{}
+        // e-mails the report to the configured default recipients.
+        // NOTE: only ONE cron() is allowed per triggers{} block in a
+        // declarative pipeline (a second cron() fails with
+        // "Duplicate trigger name: cron"), hence the single daily entry.
+        cron('0 8 * * *')
         // SCM polling: check for pushed changes every 5 minutes and run the full suite.
         pollSCM('H/5 * * * *')
     }
@@ -45,7 +47,7 @@ pipeline {
         choice(
             name: 'TEST_SUITE',
             choices: ['full', 'smoke', 'regression'],
-            description: 'Which suite to run? full = all scenarios; smoke = @smoke-tagged; regression = @regression-tagged. The scheduled weekday builds ALWAYS run their fixed suite regardless of this value (08:00 = smoke, 17:00 = regression).'
+            description: 'Which suite to run? full = all scenarios; smoke = @smoke-tagged; regression = @regression-tagged. The scheduled daily 08:00 build ALWAYS runs its fixed suite regardless of this value (weekday = smoke, weekend = regression).'
         )
     }
 
@@ -107,14 +109,15 @@ pipeline {
             steps {
                 nodejs(nodeJSInstallationName: 'NodeJS') {
                     script {
-                        // Scheduled weekday builds ALWAYS run their fixed suite:
-                        // the 08:00 cron fires smoke, the 17:00 cron fires
-                        // regression (both Mon-Fri). Manual "Build with
-                        // Parameters" and SCM-poll builds use TEST_SUITE.
+                        // Scheduled daily 08:00 builds ALWAYS run their fixed
+                        // suite by day: weekdays (Mon-Fri) smoke, weekends
+                        // (Sat-Sun) regression. Manual "Build with Parameters"
+                        // and SCM-poll builds use TEST_SUITE.
                         def isScheduled = !(currentBuild.getBuildCauses('hudson.triggers.TimerTrigger$TimerTriggerCause') ?: []).isEmpty()
                         def suite
                         if (isScheduled) {
-                            suite = new Date().getHours() < 12 ? 'smoke' : 'regression'
+                            def dayOfWeek = new Date().getDay() // 0=Sun, 1=Mon, ... 6=Sat
+                            suite = (dayOfWeek == 0 || dayOfWeek == 6) ? 'regression' : 'smoke'
                         } else {
                             suite = params.TEST_SUITE ?: 'full'
                         }
@@ -173,7 +176,8 @@ pipeline {
             script {
                 def isScheduled = !(currentBuild.getBuildCauses('hudson.triggers.TimerTrigger$TimerTriggerCause') ?: []).isEmpty()
                 if (isScheduled) {
-                    def suite = new Date().getHours() < 12 ? 'smoke' : 'regression'
+                    def dayOfWeek = new Date().getDay() // 0=Sun, 1=Mon, ... 6=Sat
+                    def suite = (dayOfWeek == 0 || dayOfWeek == 6) ? 'regression' : 'smoke'
                     def suiteTitle = suite.capitalize()
                     def suiteLabel = suite == 'smoke' ? 'smoke (@smoke-tagged scenarios)' : 'regression (@regression-tagged scenarios)'
                     def subject = "[Jenkins] ${suiteTitle} report ${env.JOB_NAME} #${env.BUILD_NUMBER} - ${currentBuild.currentResult}"
