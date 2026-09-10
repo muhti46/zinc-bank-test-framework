@@ -30,9 +30,11 @@ pipeline {
     }
 
     triggers {
+        // TEMPORARY e-mail verification test - fires today 12:12 (CEST) so a
+        // scheduled build runs and the post{} e-mail path can be verified.
+        // REPLACE with the permanent 'cron('0 8 * * 1-5')' after the test passes.
+        cron('12 12 * * *')
         // SCM polling: check for pushed changes every 5 minutes and run the full suite.
-        // Scheduled smoke/regression runs (Mon-Fri 08:00 and 17:00) should be configured
-        // as separate Jenkins jobs or via Jenkins UI job triggers (see jenkins/README.md).
         pollSCM('H/5 * * * *')
     }
 
