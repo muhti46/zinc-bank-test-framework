@@ -30,10 +30,10 @@ pipeline {
     }
 
     triggers {
-        // TEMPORARY e-mail verification test - fires today 12:30 (CEST) so a
-        // scheduled build runs and the post{} e-mail path can be verified.
-        // REPLACE with the permanent 'cron('0 8 * * 1-5')' after the test passes.
-        cron('30 12 * * *')
+        // Weekday 08:00 (controller local time) smoke run - the scheduled
+        // build always runs the morning smoke suite (hour < 12 -> smoke) and
+        // post{} e-mails the report to the configured default recipients.
+        cron('0 8 * * 1-5')
         // SCM polling: check for pushed changes every 5 minutes and run the full suite.
         pollSCM('H/5 * * * *')
     }
