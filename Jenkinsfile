@@ -30,10 +30,10 @@ pipeline {
     }
 
     triggers {
-        // TEMPORARY e-mail verification test - fires today 13:00 (CEST) so a
+        // TEMPORARY e-mail verification test - fires today 12:30 (CEST) so a
         // scheduled build runs and the post{} e-mail path can be verified.
         // REPLACE with the permanent 'cron('0 8 * * 1-5')' after the test passes.
-        cron('0 13 * * *')
+        cron('30 12 * * *')
         // SCM polling: check for pushed changes every 5 minutes and run the full suite.
         pollSCM('H/5 * * * *')
     }
@@ -108,7 +108,7 @@ pipeline {
                         // the 08:00 cron fires smoke, the 17:00 cron fires
                         // regression (both Mon-Fri). Manual "Build with
                         // Parameters" and SCM-poll builds use TEST_SUITE.
-                        def isScheduled = !(currentBuild.getBuildCauses('hudson.triggers.TimerTrigger') ?: []).isEmpty()
+                        def isScheduled = !(currentBuild.getBuildCauses('hudson.triggers.TimerTrigger$TimerTriggerCause') ?: []).isEmpty()
                         def suite
                         if (isScheduled) {
                             suite = new Date().getHours() < 12 ? 'smoke' : 'regression'
@@ -168,7 +168,7 @@ pipeline {
             // configure SMTP + recipients in Manage Jenkins -> Configure System
             // (see jenkins/README.md, "Daily report e-mail").
             script {
-                def isScheduled = !(currentBuild.getBuildCauses('hudson.triggers.TimerTrigger') ?: []).isEmpty()
+                def isScheduled = !(currentBuild.getBuildCauses('hudson.triggers.TimerTrigger$TimerTriggerCause') ?: []).isEmpty()
                 if (isScheduled) {
                     def suite = new Date().getHours() < 12 ? 'smoke' : 'regression'
                     def suiteTitle = suite.capitalize()
