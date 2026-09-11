@@ -30,8 +30,10 @@ on:
         options: [full, smoke, regression]
         default: full
   schedule:
-    # 06:00 UTC every day (08:00 Berlin in summer).
-    - cron: '0 6 * * *'
+    # Weekday 08:00 Europe/Berlin in summer (06:00 UTC) -> smoke suite.
+    - cron: '0 6 * * 1-5'
+    # Weekend 08:00 Europe/Berlin in summer (06:00 UTC) -> regression suite.
+    - cron: '0 6 * * 0,6'
 
 concurrency:
   group: zincbank-e2e-${{ github.ref }}
@@ -122,6 +124,15 @@ jobs:
           path: allure-report
           if-no-files-found: warn
 
+      # Pages artifact for the deploy job below (upload-pages-artifact is the
+      # artifact format GitHub Pages consumes; needs the id-token permission).
+      - name: Upload Pages artifact (Allure)
+        if: always()
+        uses: actions/upload-pages-artifact@v3
+        with:
+          name: github-pages
+          path: allure-report
+
       - name: Upload failure screenshots
         if: failure()
         uses: actions/upload-artifact@v4
@@ -129,3 +140,22 @@ jobs:
           name: failure-screenshots
           path: test-results/screenshots
           if-no-files-found: ignore
+
+  # Publishes the freshly generated Allure report to GitHub Pages so the
+  # latest test report is always available at a stable URL.
+  # Requires: repo Settings -> Pages -> Source = "GitHub Actions".
+  deploy:
+    name: Deploy Allure report to GitHub Pages
+    needs: test
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
