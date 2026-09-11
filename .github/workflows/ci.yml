@@ -1,0 +1,131 @@
+name: CI - ZincBank E2E
+
+# Runs the Playwright + Cucumber BDD suite on GitHub-hosted runners.
+# Mirrors the local Jenkins pipeline (see Jenkinsfile):
+#   - push to main       -> full suite
+#   - manual dispatch    -> chosen suite (full / smoke / regression)
+#   - daily 06:00 UTC    -> weekday smoke, weekend regression
+#     (06:00 UTC = 08:00 Europe/Berlin during CEST; adjust for winter time)
+#
+# Secrets required (Settings -> Secrets and variables -> Actions):
+#   ZINC_BASE_URL             https://zincbank.cydeo.io/login
+#   ZINC_APP_USERNAME         casey@zinc.test
+#   ZINC_APP_PASSWORD         <demo password>
+#   ZINC_APP_INVALID_USERNAME wrong@zinc.test
+#   ZINC_APP_INVALID_PASSWORD WrongPass123
+#   ZINC_EXPECTED_ERROR_TEXT  Invalid email or password.
+#
+# NOTE: this workflow is the *local Jenkins* twin. If you run both, every
+# push triggers two full-suite runs (GitHub + Jenkins poll). To keep only
+# one, drop the `push` trigger here or disable SCM polling in Jenkins.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: 'Which suite to run?'
+        type: choice
+        options: [full, smoke, regression]
+        default: full
+  schedule:
+    # 06:00 UTC every day (08:00 Berlin in summer).
+    - cron: '0 6 * * *'
+
+concurrency:
+  group: zincbank-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Run E2E suite
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      BASE_URL: ${{ secrets.ZINC_BASE_URL }}
+      APP_USERNAME: ${{ secrets.ZINC_APP_USERNAME }}
+      APP_PASSWORD: ${{ secrets.ZINC_APP_PASSWORD }}
+      APP_INVALID_USERNAME: ${{ secrets.ZINC_APP_INVALID_USERNAME }}
+      APP_INVALID_PASSWORD: ${{ secrets.ZINC_APP_INVALID_PASSWORD }}
+      EXPECTED_ERROR_TEXT: ${{ secrets.ZINC_EXPECTED_ERROR_TEXT }}
+      HEADLESS: 'true'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      # Pick the test command: manual input wins, otherwise the scheduled
+      # day decides (weekday = smoke, weekend = regression), push = full.
+      - name: Determine suite
+        id: suite
+        shell: pwsh
+        run: |
+          $manual = "${{ inputs.suite }}"
+          if ($manual -ne '') {
+            echo "SUITE=$manual" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          } else {
+            $day = (Get-Date).DayOfWeek
+            if ($day -eq 'Saturday' -or $day -eq 'Sunday') {
+              echo "SUITE=regression" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+            } else {
+              echo "SUITE=smoke" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+            }
+          }
+
+      - name: Run tests
+        shell: cmd
+        run: |
+          set TEST_EXIT=0
+          if "%SUITE%"=="smoke" (
+            npm run test:smoke
+          ) else if "%SUITE%"=="regression" (
+            npm run test:regression
+          ) else (
+            npm test
+          )
+          set TEST_EXIT=%errorlevel%
+          call npm run report:generate
+          call npm run report:allure:generate
+          exit /b %TEST_EXIT%
+        env:
+          SUITE: ${{ steps.suite.outputs.SUITE }}
+
+      - name: Upload Cucumber HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cucumber-report
+          path: reports/cucumber-report.html
+          if-no-files-found: warn
+
+      - name: Upload Allure report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report
+          path: allure-report
+          if-no-files-found: warn
+
+      - name: Upload failure screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failure-screenshots
+          path: test-results/screenshots
+          if-no-files-found: ignore
