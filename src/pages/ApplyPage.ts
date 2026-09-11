@@ -37,6 +37,13 @@ export class ApplyPage {
   private readonly page: Page;
 
   /**
+   * Wizard field/appearance timeout. The demo app is slow under Jenkins
+   * (CI controller + cold npm start), so step transitions get generous
+   * budget instead of the default 15-20s.
+   */
+  static readonly STEP_TIMEOUT_MS = 45_000;
+
+  /**
    * Default (synthetic, non-secret) password every throwaway test customer is
    * opened with. Scenarios change it to another synthetic value.
    */
@@ -80,13 +87,13 @@ export class ApplyPage {
 
   private async clickContinue(nextFieldTestId: string): Promise<void> {
     const next = this.page.locator('[data-testid="apply-next"]');
-    await next.waitFor({ state: 'visible', timeout: 15_000 });
+    await next.waitFor({ state: 'visible', timeout: ApplyPage.STEP_TIMEOUT_MS });
     await next.click();
     // The SPA swaps the step section; wait for the next step's first field so
     // validation failures surface as a timeout instead of a silent no-op.
     await this.page
       .locator(`[data-testid="${nextFieldTestId}"]`)
-      .waitFor({ state: 'visible', timeout: 20_000 });
+      .waitFor({ state: 'visible', timeout: ApplyPage.STEP_TIMEOUT_MS });
   }
 
   // ---- Public wizard API ---------------------------------------------
@@ -122,7 +129,7 @@ export class ApplyPage {
     // optionally open Savings alongside it (transfer scenarios need both).
     await this.page
       .locator('[data-testid="apply-step-0"]')
-      .waitFor({ state: 'visible', timeout: 15_000 });
+      .waitFor({ state: 'visible', timeout: ApplyPage.STEP_TIMEOUT_MS });
     if (options.openSavings) {
       await this.page.locator('[data-testid="apply-account-savings-toggle"]').check();
     }
@@ -168,7 +175,7 @@ export class ApplyPage {
     await this.page
       .getByText('Continue to dashboard', { exact: false })
       .first()
-      .waitFor({ state: 'visible', timeout: 30_000 });
+      .waitFor({ state: 'visible', timeout: ApplyPage.STEP_TIMEOUT_MS });
 
     return {
       email,
