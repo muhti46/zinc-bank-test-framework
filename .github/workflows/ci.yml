@@ -18,6 +18,10 @@ name: CI - ZincBank E2E
 # NOTE: this workflow is the *local Jenkins* twin. If you run both, every
 # push triggers two full-suite runs (GitHub + Jenkins poll). To keep only
 # one, drop the `push` trigger here or disable SCM polling in Jenkins.
+#
+# GitHub Pages: the Allure report is published on every run to
+#   https://muhti46.github.io/zinc-bank-test-framework/
+# Requires repo Settings -> Pages -> Source = "GitHub Actions".
 
 on:
   push:
