@@ -5,6 +5,8 @@ import { LoginPage } from '../pages/LoginPage';
 import { DashboardPage } from '../pages/DashboardPage';
 import { ProfilePage } from '../pages/ProfilePage';
 import { ApplyPage, type AppliedCustomer } from '../pages/ApplyPage';
+import { MoveMoneyPage } from '../pages/MoveMoneyPage';
+import { TransactionsPage } from '../pages/TransactionsPage';
 
 /**
  * Cucumber wraps every step (and hook) with its own timeout.
@@ -57,6 +59,16 @@ export class CustomWorld extends World {
   /** Shortcut so step definitions can reach the ApplyPage object easily. */
   public get applyPage(): ApplyPage {
     return new ApplyPage(this.page);
+  }
+
+  /** Shortcut so step definitions can reach the MoveMoneyPage object easily. */
+  public get moveMoneyPage(): MoveMoneyPage {
+    return new MoveMoneyPage(this.page);
+  }
+
+  /** Shortcut so step definitions can reach the TransactionsPage object easily. */
+  public get transactionsPage(): TransactionsPage {
+    return new TransactionsPage(this.page);
   }
 
   /** Reads an environment variable and throws a helpful error when missing. */

@@ -10,6 +10,8 @@
     "test:us00": "ts-node src/utils/runTestWithReports.ts --tags @US00",
     "test:us01": "ts-node src/utils/runTestWithReports.ts --tags @US01",
     "test:us02": "ts-node src/utils/runTestWithReports.ts --tags @US02",
+    "test:us03": "ts-node src/utils/runTestWithReports.ts --tags @US03",
+    
     "test:smoke": "ts-node src/utils/runTestWithReports.ts --tags @smoke",
     "test:regression": "ts-node src/utils/runTestWithReports.ts --tags @regression",
     "report:generate": "ts-node src/utils/reportGenerator.ts",
