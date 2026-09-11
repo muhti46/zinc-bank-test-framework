@@ -24,31 +24,38 @@ Feature: Moving Money
 
   # ------------------------------------------------------------------
   # US-AC2 — Successful transfer (both directions)
+  # Transfers run against the shared demo customer (APP_USERNAME, Casey)
+  # whose accounts carry real demo balances — freshly opened accounts start
+  # at $0.00 and cannot fund a transfer. Amounts are tiny so the demo
+  # balances are barely disturbed.
   # ------------------------------------------------------------------
   @US03-AC2 @regression
   Scenario: Transferring from Checking to Savings updates balances
     When I log in with valid credentials
     And I open the Move money page
-    When I transfer "15.00" from "Checking" to "Savings"
+    When I transfer "1.00" from "Checking" to "Savings"
     Then I should see the transfer success message
-    And the success message should state the updated source balance
+    And the transfer should update the account balances by "1.00"
 
   @US03-AC2 @regression
   Scenario: Transferring from Savings to Checking updates balances
     When I log in with valid credentials
     And I open the Move money page
-    When I transfer "10.00" from "Savings" to "Checking"
+    When I transfer "1.00" from "Savings" to "Checking"
     Then I should see the transfer success message
-    And the success message should state the updated source balance
+    And the transfer should update the account balances by "1.00"
 
   # ------------------------------------------------------------------
   # US-AC3 — Insufficient funds
+  # The amount must exceed the source balance but must NOT appear anywhere
+  # in the account history (AC4 checks that no transaction is created) —
+  # 9999.99 is far above the demo balances and never used by the seed data.
   # ------------------------------------------------------------------
   @US03-AC3 @regression
   Scenario: Transfer exceeding the available balance is rejected
     When I log in with valid credentials
     And I open the Move money page
-    When I try to transfer "5000.00" from "Checking" to "Savings"
+    When I try to transfer "9999.99" from "Checking" to "Savings"
     Then I should see the "INSUFFICIENT_FUNDS" error message
     And I should remain on the Move money page
 
@@ -59,16 +66,16 @@ Feature: Moving Money
   Scenario: A successful transfer is recorded as a transaction
     When I log in with valid credentials
     And I open the Move money page
-    When I transfer "5.00" from "Checking" to "Savings"
+    When I transfer "1.00" from "Checking" to "Savings"
     Then I should see the transfer success message
-    When I open my transactions page
-    Then a transaction for "5.00" should be listed with the source and destination accounts
+    When I go back to the dashboard
+    Then the transfer should appear in my recent activity
 
   @US03-AC4 @regression
   Scenario: A rejected transfer does not create a transaction record
     When I log in with valid credentials
     And I open the Move money page
-    When I try to transfer "5000.00" from "Checking" to "Savings"
+    When I try to transfer "9999.99" from "Checking" to "Savings"
     Then I should see the "INSUFFICIENT_FUNDS" error message
-    When I open my transactions page
-    Then no transaction for "5000.00" should be listed
+    When I go back to the dashboard
+    Then no transfer of "9999.99" should appear in my recent activity

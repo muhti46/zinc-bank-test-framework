@@ -103,17 +103,43 @@ export class TransactionsPage {
   }
 
   /**
-   * Returns the transaction row whose text contains `amount` (or null when
-   * no row matches). Rows are matched inside the transactions view so an
-   * amount appearing in page furniture (totals, filters) never counts.
+   * Returns the transaction <tr> whose Amount cell equals `amount` (e.g.
+   * "1.00" → matches "+$1.00" / "-$1.00") — or null when no row matches
+   * across the whole (paginated) table. The match is scoped to the Amount
+   * column only, so an amount appearing in page furniture (balances, totals)
+   * or another column never counts. If the row is on a later page, it clicks
+   * through the "Next" pagination until found or the list is exhausted.
    */
   async findTransactionRow(amount: string): Promise<Locator | null> {
+    const amountPattern = new RegExp(`[+-]\\$${this.escapeRegExp(amount)}`);
+    const next = this.page.getByTestId('transactions-next');
+
     try {
-      const row = this.view.getByText(amount, { exact: false }).first();
-      await row.waitFor({ state: 'visible', timeout: 10_000 });
-      return row;
+      for (let page = 0; page < 60; page++) {
+        const rows = this.view.locator('tr');
+        const count = await rows.count();
+        for (let i = 0; i < count; i++) {
+          const row = rows.nth(i);
+          // Amount is the 4th column (Date, Description, Type, Amount, Balance).
+          const amountCell = row.locator('td').nth(3);
+          if ((await amountCell.count()) === 0) continue;
+          const text = (await amountCell.textContent()) ?? '';
+          if (amountPattern.test(text.trim())) {
+            return row;
+          }
+        }
+        // Not on this page: move to the next page if there is one.
+        if (await next.isDisabled()) return null;
+        await next.click();
+        await this.view.waitFor({ state: 'visible', timeout: 10_000 });
+      }
     } catch {
       return null;
     }
+    return null;
+  }
+
+  private escapeRegExp(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 }

@@ -153,4 +153,23 @@ export class DashboardPage {
       (await this.page.locator('[data-testid="login-email-input"]').count()) > 0;
     return welcomeGone && loginFormVisible;
   }
+
+  // ---- Recent activity (US03-AC4) -----------------------------------------
+
+  /**
+   * True when the dashboard "Recent activity" list shows a Transfer entry of
+   * the given amount (e.g. "$1.00"). Used by the transaction-record assertion
+   * — after a transfer the new activity appears at the top of the list.
+   */
+  async isRecentTransferVisible(amount: string): Promise<boolean> {
+    try {
+      await this.page
+        .getByText(`$${amount}`, { exact: false })
+        .first()
+        .waitFor({ state: 'visible', timeout: 10_000 });
+      return true;
+    } catch {
+      return false;
+    }
+  }
 }

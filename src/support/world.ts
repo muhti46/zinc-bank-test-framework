@@ -41,6 +41,14 @@ export class CustomWorld extends World {
    */
   public changedPassword?: string;
 
+  /**
+   * The source/destination account keywords of the last transfer made in the
+   * current scenario (set by the US03 "I transfer ..." step). Lets a later
+   * step re-read those accounts' balances to verify the transfer.
+   */
+  public lastTransferFrom?: string;
+  public lastTransferTo?: string;
+
   /** Shortcut so step definitions can reach the LoginPage object easily. */
   public get loginPage(): LoginPage {
     return new LoginPage(this.page);

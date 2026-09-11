@@ -28,6 +28,10 @@ export interface AppliedCustomer {
  * page hides its edit form for such accounts. The US002 profile scenarios
  * therefore provision a fresh throwaway customer through this wizard (unique
  * email per run) and never touch any shared account.
+ *
+ * Transfer scenarios (US003) additionally need BOTH a Checking and a Savings
+ * account - `applyForNewCustomerWithOptions({ openSavings: true })` ticks the
+ * "Open a savings account" checkbox on step 0 so the customer gets both.
  */
 export class ApplyPage {
   private readonly page: Page;
@@ -85,15 +89,43 @@ export class ApplyPage {
       .waitFor({ state: 'visible', timeout: 20_000 });
   }
 
-  private async fillWizard(password: string): Promise<{ email: string }> {
+  // ---- Public wizard API ---------------------------------------------
+
+  /** Opens a fresh throwaway customer with a Checking account only. */
+  async applyForNewCustomer(password: string): Promise<AppliedCustomer> {
+    return this.applyForNewCustomerWithOptions(password, { openSavings: false });
+  }
+
+  /**
+   * Opens the account application and fills the wizard for a fresh throwaway
+   * customer with the deterministic synthetic fixture (unique email).
+   * Returns the created credentials + registered profile so later steps can
+   * sign in as this customer and assert the Profile page shows this data.
+   *
+   * When `options.openSavings` is true the "Open a savings account" checkbox
+   * on step 0 is ticked too, so the customer has BOTH a Checking and a
+   * Savings account (required for transfer scenarios).
+   */
+  async applyForNewCustomerWithOptions(
+    password: string,
+    options: { openSavings: boolean }
+  ): Promise<AppliedCustomer> {
+    await this.page.goto(`${this.appBaseUrl()}/apply`, {
+      waitUntil: 'domcontentloaded'
+    });
+
     const { first, last, phone, dob, ssn, address, city, state, zip } =
       ApplyPage.CUSTOMER;
     const email = ApplyPage.nextEmail();
 
-    // Step 0 - Choose your accounts (checking is included by default).
+    // Step 0 - Choose your accounts. Checking is included by default;
+    // optionally open Savings alongside it (transfer scenarios need both).
     await this.page
       .locator('[data-testid="apply-step-0"]')
       .waitFor({ state: 'visible', timeout: 15_000 });
+    if (options.openSavings) {
+      await this.page.locator('[data-testid="apply-account-savings-toggle"]').check();
+    }
     await this.clickContinue('apply-firstname-input');
 
     // Step 1 - About you.
@@ -125,25 +157,6 @@ export class ApplyPage {
     await this.page.locator('[data-testid="apply-confirm-input"]').fill(password);
     await this.clickContinue('apply-terms-checkbox');
 
-    // Step 5 - Terms + submit. (Handled by the caller via submitApplication so
-    // the success wait stays next to the submit call.)
-    return { email };
-  }
-  // ---- Public wizard API ---------------------------------------------
-
-  /**
-   * Opens the account application and fills the wizard for a fresh throwaway
-   * customer with the deterministic synthetic fixture (unique email).
-   * Returns the created credentials + registered profile so later steps can
-   * sign in as this customer and assert the Profile page shows this data.
-   */
-  async applyForNewCustomer(password: string): Promise<AppliedCustomer> {
-    await this.page.goto(`${this.appBaseUrl()}/apply`, {
-      waitUntil: 'domcontentloaded'
-    });
-
-    const { email } = await this.fillWizard(password);
-
     // Step 5 - accept the simulated terms and submit the application.
     const terms = this.page.locator('[data-testid="apply-terms-checkbox"]');
     await terms.check();
@@ -157,7 +170,6 @@ export class ApplyPage {
       .first()
       .waitFor({ state: 'visible', timeout: 30_000 });
 
-    const { first, last, phone, address } = ApplyPage.CUSTOMER;
     return {
       email,
       password,

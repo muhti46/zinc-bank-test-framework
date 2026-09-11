@@ -133,6 +133,40 @@ export class MoveMoneyPage {
     await this.transferSubmit.click();
   }
 
+  /**
+   * Performs a transfer and returns the source/destination balances read from
+   * the form BEFORE and AFTER the transfer. AC2 asserts that the amount was
+   * deducted from the source and added to the destination, so the two
+   * snapshots let the caller verify both sides without depending on the
+   * success-message wording.
+   */
+  async transferAndSnapshotBalances(
+    from: string,
+    to: string,
+    amount: string
+  ): Promise<{
+    sourceBefore: string;
+    destBefore: string;
+    sourceAfter: string;
+    destAfter: string;
+  }> {
+    await this.selectByKeyword(this.transferFrom, from);
+    await this.selectByKeyword(this.transferTo, to);
+
+    const sourceBefore = await this.getBalanceOfAccount(from);
+    const destBefore = await this.getBalanceOfToAccount(to);
+
+    await this.transferAmount.fill(amount);
+    await this.transferSubmit.click();
+
+    // After a successful transfer the app re-renders the option labels with
+    // the new balances, so re-reading them reflects the update.
+    const sourceAfter = await this.getBalanceOfAccount(from);
+    const destAfter = await this.getBalanceOfToAccount(to);
+
+    return { sourceBefore, destBefore, sourceAfter, destAfter };
+  }
+
   /** True when the current URL still points at the Move money page. */
   async isOnMoveMoneyPage(): Promise<boolean> {
     return this.page.url().includes('/move-money');
@@ -141,13 +175,14 @@ export class MoveMoneyPage {
   /**
    * Returns the transfer success message text ('' if absent).
    * Format: "Transferred — new balance $X,XXX.XX." (US03-AC2).
-   * The message has no data-testid — it is a plain <div class="text-subtle">.
+   * The message is rendered in a <note> element (role="note") that appears
+   * above the transfer form after a successful transfer — it has no stable
+   * data-testid, so it is matched by its "Transferred" prefix text.
    */
   async getSuccessMessage(): Promise<string> {
     try {
       const message = this.page
-        .locator('div.text-subtle')
-        .filter({ hasText: /Transferred/i })
+        .getByText(/Transferred[\s\S]*new balance \$[\d,]+\.\d{2}/i)
         .first();
       await message.waitFor({ state: 'visible', timeout: 15_000 });
       return (await message.textContent() ?? '').trim();
@@ -174,14 +209,13 @@ export class MoveMoneyPage {
 
   /**
    * Returns the error text of the transfer form ('' if absent).
-   * The app shows error codes in a plain <div class="text-subtle">.
+   * The app shows error codes in the same note element position.
    * Known errors: INSUFFICIENT_FUNDS, INVALID_AMOUNT.
    */
   async getErrorMessage(): Promise<string> {
     try {
       const message = this.page
-        .locator('div.text-subtle')
-        .filter({ hasText: /INSUFFICIENT_FUNDS|INVALID_AMOUNT/i })
+        .getByText(/INSUFFICIENT_FUNDS|INVALID_AMOUNT/i)
         .first();
       await message.waitFor({ state: 'visible', timeout: 15_000 });
       return (await message.textContent() ?? '').trim();
@@ -209,5 +243,38 @@ export class MoveMoneyPage {
     } catch {
       return '';
     }
+  }
+
+  /**
+   * Returns the balance embedded in the option of `select` whose label
+   * contains `keyword` (e.g. "Savings" → "25971.14"), or '' when not found.
+   * Unlike getBalanceFromSourceOption this does not depend on which option is
+   * currently selected — it reads the LIVE balance shown for the named account.
+   */
+  private async getBalanceOfOption(
+    select: Locator,
+    keyword: string
+  ): Promise<string> {
+    try {
+      await select.waitFor({ state: 'visible', timeout: 10_000 });
+      const labels = await select.locator('option').allTextContents();
+      const label = labels.find((l) =>
+        l.toLowerCase().includes(keyword.trim().toLowerCase())
+      );
+      const match = (label ?? '').match(/\$([\d,]+\.\d{2})/);
+      return match ? match[1].replace(/,/g, '') : '';
+    } catch {
+      return '';
+    }
+  }
+
+  /** Live balance of the given source account option label (e.g. "Checking"). */
+  async getBalanceOfAccount(keyword: string): Promise<string> {
+    return this.getBalanceOfOption(this.transferFrom, keyword);
+  }
+
+  /** Live balance of the given destination account option label. */
+  async getBalanceOfToAccount(keyword: string): Promise<string> {
+    return this.getBalanceOfOption(this.transferTo, keyword);
   }
 }
