@@ -53,10 +53,12 @@ export class MoveMoneyPage {
   async navigateToMoveMoneyPage(): Promise<void> {
     // Click the "Move money" sidebar item — direct URL goto in the Next.js
     // SPA can race with the auth session and redirect back to login.
+    // Generous timeout: the sidebar can be slow to appear right after the
+    // previous scenario signs out / a fresh login lands (flaky on CI).
     const navMoveMoney = this.page.locator('[data-testid="nav-move-money"]');
-    await navMoveMoney.waitFor({ state: 'visible', timeout: 15_000 });
+    await navMoveMoney.waitFor({ state: 'visible', timeout: 25_000 });
     await navMoveMoney.click();
-    await this.transferFrom.waitFor({ state: 'visible', timeout: 15_000 });
+    await this.transferFrom.waitFor({ state: 'visible', timeout: 25_000 });
   }
 
   /** True when the transfer form is visible (the source account select). */

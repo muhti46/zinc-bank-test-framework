@@ -25,6 +25,10 @@ module.exports = {
       'allure-cucumberjs/reporter',
       'json:reports/cucumber-report.json'
     ],
+    // Exit promptly once every scenario is done. Playwright's browser stays
+    // alive as an open handle and, without this flag, cucumber-js can exit
+    // non-zero AFTER a fully green run (seen with the bill-pay scenarios).
+    forceExit: true,
     formatOptions: {
       // Allure raw results location (see the Report agent playbook).
       resultsDir: 'allure-results',

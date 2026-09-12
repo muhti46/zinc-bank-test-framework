@@ -55,7 +55,14 @@ function cucumberArgs(): string[] {
   if (args.length > 0 && !args[0].startsWith('-')) {
     args.shift(); // the script path itself (ts-node)
   }
-  return args.filter((arg) => !DRIVER_FLAGS.has(arg));
+  const forwarded = args.filter((arg) => !DRIVER_FLAGS.has(arg));
+  // --exit forces cucumber-js to terminate once every scenario is done.
+  // Playwright's browser stays alive as an open handle and, without it,
+  // cucumber-js can exit non-zero AFTER a fully green run (dangling handle).
+  if (!forwarded.includes('--exit')) {
+    forwarded.push('--exit');
+  }
+  return forwarded;
 }
 
 // Report steps always executed after the suite (idempotent; match Jenkinsfile).
