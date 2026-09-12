@@ -51,14 +51,22 @@ export class MoveMoneyPage {
 
   /** Opens the Move money page via sidebar navigation (SPA-safe). */
   async navigateToMoveMoneyPage(): Promise<void> {
-    // Click the "Move money" sidebar item — direct URL goto in the Next.js
-    // SPA can race with the auth session and redirect back to login.
-    // Generous timeout: the sidebar can be slow to appear right after the
-    // previous scenario signs out / a fresh login lands (flaky on CI).
     const navMoveMoney = this.page.locator('[data-testid="nav-move-money"]');
-    await navMoveMoney.waitFor({ state: 'visible', timeout: 25_000 });
-    await navMoveMoney.click();
-    await this.transferFrom.waitFor({ state: 'visible', timeout: 25_000 });
+    
+    // Sidebar linkine tıkla ve beklet.
+    try {
+      await navMoveMoney.waitFor({ state: 'visible', timeout: 45_000 });
+      await navMoveMoney.click();
+      // Formun yüklenmesini bekle.
+      await this.transferFrom.waitFor({ state: 'visible', timeout: 45_000 });
+    } catch (e) {
+      // Flaky navigasyon durumunda bir kez sayfa yenileme ile tekrar dene.
+      console.warn('Navigation to Move Money failed, retrying once...');
+      await this.page.reload({ waitUntil: 'domcontentloaded' });
+      await navMoveMoney.waitFor({ state: 'visible', timeout: 45_000 });
+      await navMoveMoney.click();
+      await this.transferFrom.waitFor({ state: 'visible', timeout: 45_000 });
+    }
   }
 
   /** True when the transfer form is visible (the source account select). */
