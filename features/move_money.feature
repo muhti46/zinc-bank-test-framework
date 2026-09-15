@@ -12,7 +12,7 @@ Feature: Moving Money
   # ------------------------------------------------------------------
   # US-AC1 — Money Transfer form
   # ------------------------------------------------------------------
-  @US03-AC1 @regression
+  @US03-AC1 @smoke
   Scenario: Transfer form offers source and destination account selection
     When I log in with valid credentials
     And I open the Move money page
@@ -24,12 +24,8 @@ Feature: Moving Money
 
   # ------------------------------------------------------------------
   # US-AC2 — Successful transfer (both directions)
-  # Transfers run against the shared demo customer (APP_USERNAME, Casey)
-  # whose accounts carry real demo balances — freshly opened accounts start
-  # at $0.00 and cannot fund a transfer. Amounts are tiny so the demo
-  # balances are barely disturbed.
   # ------------------------------------------------------------------
-  @US03-AC2 @regression
+  @US03-AC2 @smoke
   Scenario: Transferring from Checking to Savings updates balances
     When I log in with valid credentials
     And I open the Move money page
@@ -37,7 +33,7 @@ Feature: Moving Money
     Then I should see the transfer success message
     And the transfer should update the account balances by "1.00"
 
-  @US03-AC2 @regression
+  @US03-AC2 @smoke
   Scenario: Transferring from Savings to Checking updates balances
     When I log in with valid credentials
     And I open the Move money page
@@ -47,9 +43,6 @@ Feature: Moving Money
 
   # ------------------------------------------------------------------
   # US-AC3 — Insufficient funds
-  # The amount must exceed the source balance but must NOT appear anywhere
-  # in the account history (AC4 checks that no transaction is created) —
-  # 9999.99 is far above the demo balances and never used by the seed data.
   # ------------------------------------------------------------------
   @US03-AC3 @regression
   Scenario: Transfer exceeding the available balance is rejected
