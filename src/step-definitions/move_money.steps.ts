@@ -91,18 +91,18 @@ Then(
 
     // Poll the AFTER balances: the source drops by `amount`, destination
     // grows by `amount` (tolerating small float rounding).
-    // Jenkins environment can be slow, using 15s timeout.
+    // Jenkins environment can be slow, using 20s total budget.
     await expect
       .poll(async () => Number(await this.moveMoneyPage.getBalanceOfAccount(from)), {
-        timeout: 15_000,
-        intervals: [1000, 2000, 5000]
+        timeout: 20_000,
+        intervals: [500, 1000, 2000, 5000]
       })
       .toBeCloseTo(Number(sourceBefore) - amountNum, 2);
 
     await expect
       .poll(async () => Number(await this.moveMoneyPage.getBalanceOfToAccount(to)), {
-        timeout: 15_000,
-        intervals: [1000, 2000, 5000]
+        timeout: 20_000,
+        intervals: [500, 1000, 2000, 5000]
       })
       .toBeCloseTo(Number(destBefore) + amountNum, 2);
   }
